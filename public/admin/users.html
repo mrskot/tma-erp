@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пользователи - TMA-ERP</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Стили из предыдущей версии остаются */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 90%; max-width: 500px; padding: 30px; border-radius: 15px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        /* ... остальные стили ... */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Навигация -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><i class="fas fa-users"></i> Управление пользователями</h1>
+                <p>Создание, редактирование, назначение ролей</p>
+            </div>
+            <div class="nav-links">
+                <a href="/admin" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад в админку
+                </a>
+                <button onclick="showCreateModal()" class="btn btn-success">
+                    <i class="fas fa-user-plus"></i> Добавить пользователя
+                </button>
+            </div>
+        </nav>
+        
+        <!-- Поиск и фильтры -->
+        <div class="search-box">
+            <div class="form-group">
+                <label>Поиск по Telegram ID или имени:</label>
+                <input type="text" id="searchInput" class="form-control" placeholder="Введите для поиска..." 
+                       onkeyup="filterUsers()">
+            </div>
+            <div class="form-group">
+                <label>Фильтр по роли:</label>
+                <select id="roleFilter" class="form-control" onchange="filterUsers()">
+                    <option value="">Все роли</option>
+                    <option value="worker">Рабочий</option>
+                    <option value="master">Мастер</option>
+                    <option value="otk_inspector">Контролёр ОТК</option>
+                    <option value="admin">Администратор</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Статистика -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-users">0</div>
+                <div class="stat-label">Всего пользователей</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="active-users">0</div>
+                <div class="stat-label">Активных</div>
+            </div>
+        </div>
+        
+        <!-- Таблица пользователей -->
+        <div class="content-card">
+            <h2><i class="fas fa-table"></i> Список пользователей</h2>
+            <div id="users-table">
+                <p><i>Загрузка данных...</i></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно создания пользователя -->
+    <div id="createUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-plus"></i> Новый пользователь</h2>
+                <button class="close-modal" onclick="closeModal('createUserModal')">&times;</button>
+            </div>
+            <form id="createUserForm">
+                <div class="form-group">
+                    <label for="create_telegram_id">Telegram ID *</label>
+                    <input type="text" id="create_telegram_id" class="form-control" required 
+                           placeholder="Например: master2">
+                </div>
+                <div class="form-group">
+                    <label for="create_username">Username (опционально)</label>
+                    <input type="text" id="create_username" class="form-control" 
+                           placeholder="@username">
+                </div>
+                <div class="form-group">
+                    <label for="create_first_name">Имя</label>
+                    <input type="text" id="create_first_name" class="form-control" 
+                           placeholder="Иван">
+                </div>
+                <div class="form-group">
+                    <label for="create_last_name">Фамилия</label>
+                    <input type="text" id="create_last_name" class="form-control" 
+                           placeholder="Иванов">
+                </div>
+                <div class="form-group">
+                    <label for="create_role">Роль *</label>
+                    <select id="create_role" class="form-control" required>
+                        <option value="worker">Рабочий</option>
+                        <option value="master">Мастер</option>
+                        <option value="otk_inspector">Контролёр ОТК</option>
+                        <option value="admin">Администратор</option>
+                        <option value="quality_director">Директор качества</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="create_pin_code">PIN-код (4 цифры)</label>
+                    <input type="text" id="create_pin_code" class="form-control" 
+                           maxlength="4" pattern="\d{4}" placeholder="0000"
+                           title="Введите 4 цифры">
+                </div>
+                <div class="form-buttons" style="display: flex; gap: 10px; margin-top: 25px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        <i class="fas fa-save"></i> Создать пользователя
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createUserModal')">
+                        Отмена
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Модальное окно редактирования пользователя -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Редактировать пользователя</h2>
+                <button class="close-modal" onclick="closeModal('editUserModal')">&times;</button>
+            </div>
+            <form id="editUserForm">
+                <input type="hidden" id="edit_user_id">
+                <div class="form-group">
+                    <label for="edit_telegram_id">Telegram ID *</label>
+                    <input type="text" id="edit_telegram_id" class="form-control" required 
+                           readonly style="background: #f8f9fa;">
+                </div>
+                <div class="form-group">
+                    <label for="edit_username">Username</label>
+                    <input type="text" id="edit_username" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="edit_first_name">Имя</label>
+                    <input type="text" id="edit_first_name" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="edit_last_name">Фамилия</label>
+                    <input type="text" id="edit_last_name" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="edit_role">Роль *</label>
+                    <select id="edit_role" class="form-control" required>
+                        <option value="worker">Рабочий</option>
+                        <option value="master">Мастер</option>
+                        <option value="otk_inspector">Контролёр ОТК</option>
+                        <option value="admin">Администратор</option>
+                        <option value="quality_director">Директор качества</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit_pin_code">PIN-код (4 цифры)</label>
+                    <input type="text" id="edit_pin_code" class="form-control" 
+                           maxlength="4" pattern="\d{4}">
+                </div>
+                <div class="form-group">
+                    <label for="edit_is_active">Активен</label>
+                    <select id="edit_is_active" class="form-control">
+                        <option value="true">Да</option>
+                        <option value="false">Нет</option>
+                    </select>
+                </div>
+                <div class="form-buttons" style="display: flex; gap: 10px; margin-top: 25px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        <i class="fas fa-save"></i> Сохранить изменения
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editUserModal')">
+                        Отмена
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Глобальные переменные
+        let allUsers = [];
+        
+        // Функции модальных окон
+        function showCreateModal() {
+            document.getElementById('createUserForm').reset();
+            document.getElementById('createUserModal').style.display = 'flex';
+        }
+        
+        function showEditModal(user) {
+            // Используем telegram_id вместо id
+            document.getElementById('edit_user_id').value = user.id;
+            document.getElementById('edit_telegram_id').value = user.telegram_id;
+            document.getElementById('edit_username').value = user.username || '';
+            document.getElementById('edit_first_name').value = user.first_name || '';
+            document.getElementById('edit_last_name').value = user.last_name || '';
+            document.getElementById('edit_role').value = user.role;
+            document.getElementById('edit_pin_code').value = user.pin_code || '0000';
+            document.getElementById('edit_is_active').value = user.is_active !== false ? 'true' : 'false';
+            
+            document.getElementById('editUserModal').style.display = 'flex';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Уведомления
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()">&times;</button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+        
+        // Загрузка пользователей
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/v1/users');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allUsers = data.users;
+                    document.getElementById('total-users').textContent = data.count;
+                    
+                    const activeCount = data.users.filter(u => u.is_active !== false).length;
+                    document.getElementById('active-users').textContent = activeCount;
+                    
+                    renderUsersTable(allUsers);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки пользователей:', error);
+                document.getElementById('users-table').innerHTML = 
+                    '<p style="color:red;">Ошибка загрузки: ' + error.message + '</p>';
+            }
+        }
+        
+        // Рендер таблицы
+        function renderUsersTable(users) {
+            const tableDiv = document.getElementById('users-table');
+            
+            if (users.length === 0) {
+                tableDiv.innerHTML = '<p>Нет пользователей для отображения</p>';
+                return;
+            }
+            
+            let html = '<table class="data-table">';
+            html += '<thead><tr>';
+            html += '<th>ID</th><th>Telegram ID</th><th>Имя</th><th>Роль</th><th>Активен</th><th>Создан</th><th>Действия</th>';
+            html += '</tr></thead><tbody>';
+            
+            users.forEach(user => {
+                const roleNames = {
+                    'worker': 'Рабочий',
+                    'master': 'Мастер', 
+                    'otk_inspector': 'Контролёр ОТК',
+                    'admin': 'Администратор',
+                    'quality_director': 'Директор качества'
+                };
+                
+                html += '<tr>';
+                html += '<td>' + user.id + '</td>';
+                html += '<td><strong>' + user.telegram_id + '</strong>' + 
+                       (user.username ? '<br><small>@' + user.username + '</small>' : '') + '</td>';
+                html += '<td>' + (user.first_name || '-') + ' ' + (user.last_name || '') + '</td>';
+                html += '<td><span class="status-' + user.role + '">' + (roleNames[user.role] || user.role) + '</span></td>';
+                html += '<td>' + (user.is_active !== false ? '✅' : '❌') + '</td>';
+                html += '<td>' + new Date(user.created_at).toLocaleDateString('ru-RU') + '</td>';
+                html += '<td>';
+                html += '<div class="action-buttons">';
+                html += '<button class="btn-action btn-edit" onclick="showEditModal(' + JSON.stringify(user).replace(/"/g, '&quot;') + ')">';
+                html += '<i class="fas fa-edit"></i> Ред.';
+                html += '</button>';
+                html += '<button class="btn-action btn-delete" onclick="deleteUser(' + user.id + ', \'' + user.telegram_id + '\')">';
+                html += '<i class="fas fa-trash"></i> Уд.';
+                html += '</button>';
+                html += '</div>';
+                html += '</td>';
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            tableDiv.innerHTML = html;
+        }
+        
+        // Фильтрация
+        function filterUsers() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const roleFilter = document.getElementById('roleFilter').value;
+            
+            let filtered = allUsers;
+            
+            if (searchText) {
+                filtered = filtered.filter(user => 
+                    user.telegram_id.toLowerCase().includes(searchText) ||
+                    (user.username && user.username.toLowerCase().includes(searchText)) ||
+                    (user.first_name && user.first_name.toLowerCase().includes(searchText)) ||
+                    (user.last_name && user.last_name.toLowerCase().includes(searchText))
+                );
+            }
+            
+            if (roleFilter) {
+                filtered = filtered.filter(user => user.role === roleFilter);
+            }
+            
+            renderUsersTable(filtered);
+        }
+        
+        // Создание пользователя
+        document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userData = {
+                telegram_id: document.getElementById('create_telegram_id').value,
+                username: document.getElementById('create_username').value || null,
+                first_name: document.getElementById('create_first_name').value || null,
+                last_name: document.getElementById('create_last_name').value || null,
+                role: document.getElementById('create_role').value,
+                pin_code: document.getElementById('create_pin_code').value || '0000'
+            };
+            
+            try {
+                const response = await fetch('/api/v1/users/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('✅ Пользователь успешно создан!', 'success');
+                    closeModal('createUserModal');
+                    loadUsers();
+                } else {
+                    showNotification('❌ Ошибка: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showNotification('❌ Ошибка сети: ' + error.message, 'error');
+            }
+        });
+        
+        // Редактирование пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        document.getElementById('editUserForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const telegramId = document.getElementById('edit_telegram_id').value;
+            const userData = {
+                username: document.getElementById('edit_username').value || null,
+                first_name: document.getElementById('edit_first_name').value || null,
+                last_name: document.getElementById('edit_last_name').value || null,
+                role: document.getElementById('edit_role').value,
+                pin_code: document.getElementById('edit_pin_code').value || '0000',
+                is_active: document.getElementById('edit_is_active').value === 'true'
+            };
+            
+            try {
+                // Используем PUT запрос с telegram_id
+                const response = await fetch(`/api/v1/users/${encodeURIComponent(telegramId)}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('✅ Пользователь успешно обновлен!', 'success');
+                    closeModal('editUserModal');
+                    loadUsers();
+                } else {
+                    showNotification(`❌ Ошибка: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        });
+        
+        // Удаление пользователя - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        function deleteUser(id, telegramId) {
+            if (confirm(`Вы уверены что хотите деактивировать пользователя ${telegramId}?\n\nПользователь не сможет войти в систему.`)) {
+                fetch(`/api/v1/users/${encodeURIComponent(telegramId)}`, {
+                    method: 'DELETE',
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        showNotification('✅ Пользователь деактивирован', 'success');
+                        loadUsers();
+                    } else {
+                        showNotification(`❌ Ошибка: ${result.error}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification(`❌ Ошибка сети: ${error.message}`, 'error');
+                });
+            }
+        }
+        
+        // Загружаем данные при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadUsers);
+        
+        // Закрытие модальных окон при клике вне их
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>

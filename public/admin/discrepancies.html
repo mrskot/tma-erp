@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Несоответствия - TMA-ERP</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><i class="fas fa-exclamation-triangle"></i> Управление несоответствиями</h1>
+                <p>Дефекты, КР, брак, аналитика</p>
+            </div>
+            <div class="nav-links">
+                <a href="/admin" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад в админку
+                </a>
+                <button onclick="createDiscrepancy()" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Добавить несоответствие
+                </button>
+            </div>
+        </nav>
+        
+        <div class="content-card">
+            <h2><i class="fas fa-info-circle"></i> Информация</h2>
+            <p>Это страница управления несоответствиями и дефектами.</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-disc">0</div>
+                    <div class="stat-label">Всего несоответствий</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="active-disc">0</div>
+                    <div class="stat-label">Активных</div>
+                </div>
+            </div>
+            
+            <h2><i class="fas fa-plug"></i> API Endpoints</h2>
+            <div>
+                <a href="/api/v1/discrepancies" target="_blank" class="api-link">
+                    GET /api/v1/discrepancies
+                </a>
+                <a href="/api/v1/discrepancies/stats" target="_blank" class="api-link">
+                    GET /api/v1/discrepancies/stats
+                </a>
+                <a href="/api/v1/discrepancies/top-defects" target="_blank" class="api-link">
+                    GET /api/v1/discrepancies/top-defects
+                </a>
+            </div>
+            
+            <h2><i class="fas fa-table"></i> Список несоответствий</h2>
+            <div id="disc-table">
+                <p><i>Загрузка данных...</i></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function createDiscrepancy() {
+            alert('Форма создания несоответствия в разработке');
+        }
+        
+        async function loadDiscrepancies() {
+            try {
+                const response = await fetch('/api/v1/discrepancies');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('total-disc').textContent = data.count;
+                    
+                    const activeDisc = data.discrepancies.filter(disc => 
+                        disc.status === 'new' || disc.status === 'in_resolution'
+                    ).length;
+                    document.getElementById('active-disc').textContent = activeDisc;
+                    
+                    const tableDiv = document.getElementById('disc-table');
+                    if (data.discrepancies.length > 0) {
+                        let html = '<table class="data-table">';
+                        html += '<thead><tr>';
+                        html += '<th>Номер</th><th>Описание</th><th>Тип</th><th>Статус</th><th>Создано</th>';
+                        html += '</tr></thead><tbody>';
+                        
+                        data.discrepancies.forEach(disc => {
+                            html += '<tr>';
+                            html += '<td>' + disc.discrepancy_number + '</td>';
+                            html += '<td>' + disc.description.substring(0, 50) + '...</td>';
+                            html += '<td>' + disc.type + '</td>';
+                            html += '<td><span class="status-' + disc.status + '">' + disc.status + '</span></td>';
+                            html += '<td>' + new Date(disc.created_at).toLocaleDateString('ru-RU') + '</td>';
+                            html += '</tr>';
+                        });
+                        
+                        html += '</tbody></table>';
+                        tableDiv.innerHTML = html;
+                    } else {
+                        tableDiv.innerHTML = '<p>Нет несоответствий в системе</p>';
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки несоответствий:', error);
+                document.getElementById('disc-table').innerHTML = 
+                    '<p style="color:red;">Ошибка загрузки: ' + error.message + '</p>';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', loadDiscrepancies);
+    </script>
+    
+    <style>
+        .api-link {
+            display: inline-block;
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 5px;
+            text-decoration: none;
+            color: #4c6ef5;
+            border: 1px solid #dee2e6;
+        }
+        
+        .api-link:hover {
+            background: #e9ecef;
+            border-color: #4c6ef5;
+        }
+    </style>
+</body>
+</html>

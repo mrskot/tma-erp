@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMA-ERP - Система управления качеством</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Навигация -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1>🏭 TMA-ERP</h1>
+                <p>Система управления качеством производства</p>
+            </div>
+            <div class="nav-links">
+                <a href="/admin" class="btn btn-primary">
+                    <i class="fas fa-cogs"></i> Админ-панель
+                </a>
+                <a href="/api/v1/health" class="btn btn-secondary" target="_blank">
+                    <i class="fas fa-heart-pulse"></i> Статус API
+                </a>
+            </div>
+        </nav>
+
+        <!-- Основной контент -->
+        <main class="dashboard">
+            <div class="cards">
+                <!-- Карточка пользователей -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-users"></i>
+                        <h3>Пользователи</h3>
+                    </div>
+                    <div class="card-body">
+                        <p id="users-count">Загрузка...</p>
+                        <a href="/admin/users" class="btn btn-sm">Управление</a>
+                    </div>
+                </div>
+
+                <!-- Карточка участков -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-industry"></i>
+                        <h3>Участки</h3>
+                    </div>
+                    <div class="card-body">
+                        <p id="lots-count">Загрузка...</p>
+                        <a href="/admin/lots" class="btn btn-sm">Управление</a>
+                    </div>
+                </div>
+
+                <!-- Карточка изделий -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-cube"></i>
+                        <h3>Изделия</h3>
+                    </div>
+                    <div class="card-body">
+                        <p id="products-count">Загрузка...</p>
+                        <a href="/admin/products" class="btn btn-sm">Управление</a>
+                    </div>
+                </div>
+
+                <!-- Карточка заявок -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-clipboard-check"></i>
+                        <h3>Заявки</h3>
+                    </div>
+                    <div class="card-body">
+                        <p id="applications-count">Загрузка...</p>
+                        <a href="/admin/applications" class="btn btn-sm">Управление</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Быстрые действия -->
+            <div class="quick-actions">
+                <h2><i class="fas fa-bolt"></i> Быстрые действия</h2>
+                <div class="action-buttons">
+                    <button onclick="createApplication()" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Создать заявку
+                    </button>
+                    <button onclick="viewDiscrepancies()" class="btn btn-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Несоответствия
+                    </button>
+                    <button onclick="openStats()" class="btn btn-info">
+                        <i class="fas fa-chart-bar"></i> Статистика
+                    </button>
+                </div>
+            </div>
+
+            <!-- API Endpoints -->
+            <div class="api-endpoints">
+                <h2><i class="fas fa-plug"></i> Доступные API endpoints</h2>
+                <div class="endpoints-list">
+                    <div class="endpoint">
+                        <code>GET /api/v1/users</code>
+                        <span>Пользователи</span>
+                    </div>
+                    <div class="endpoint">
+                        <code>GET /api/v1/lots</code>
+                        <span>Участки</span>
+                    </div>
+                    <div class="endpoint">
+                        <code>GET /api/v1/products</code>
+                        <span>Изделия</span>
+                    </div>
+                    <div class="endpoint">
+                        <code>GET /api/v1/applications</code>
+                        <span>Заявки</span>
+                    </div>
+                    <div class="endpoint">
+                        <code>GET /api/v1/discrepancies</code>
+                        <span>Несоответствия</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>TMA-ERP v1.0 | API: <span id="api-status">❓ Проверка...</span></p>
+            <p>Тестовый режим (без Telegram)</p>
+        </footer>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>

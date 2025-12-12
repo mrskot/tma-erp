@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Участки - TMA-ERP</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1><i class="fas fa-industry"></i> Управление участками</h1>
+                <p>Цеха, линии, назначение мастеров</p>
+            </div>
+            <div class="nav-links">
+                <a href="/admin" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад в админку
+                </a>
+                <button onclick="showCreateModal()" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Добавить участок
+                </button>
+            </div>
+        </nav>
+        
+        <div class="content-card">
+            <h2><i class="fas fa-table"></i> Список участков</h2>
+            <div id="lots-table">
+                <p><i>Загрузка данных...</i></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let allLots = [];
+        
+        async function loadLots() {
+            try {
+                const response = await fetch('/api/v1/lots');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allLots = data.lots;
+                    renderLotsTable(allLots);
+                }
+            } catch (error) {
+                document.getElementById('lots-table').innerHTML = 
+                    '<p style="color:red;">Ошибка: ' + error.message + '</p>';
+            }
+        }
+        
+        function renderLotsTable(lots) {
+            const tableDiv = document.getElementById('lots-table');
+            
+            let html = '<table class="data-table">';
+            html += '<thead><tr>';
+            html += '<th>ID</th><th>Название</th><th>Менеджер</th><th>Приоритет</th><th>Расстояние до ОТК</th><th>Действия</th>';
+            html += '</tr></thead><tbody>';
+            
+            lots.forEach(lot => {
+                html += '<tr>';
+                html += '<td>' + lot.id + '</td>';
+                html += '<td><strong>' + lot.name + '</strong><br><small>' + (lot.description || '') + '</small></td>';
+                html += '<td>' + lot.manager_telegram_id + '</td>';
+                html += '<td>' + lot.priority_level + '</td>';
+                html += '<td>' + (lot.distance_to_otk_meters || '-') + ' м</td>';
+                html += '<td>';
+                html += '<button class="btn-action btn-edit" onclick="editLot(' + lot.id + ')">';
+                html += '<i class="fas fa-edit"></i> Ред.';
+                html += '</button>';
+                html += '<button class="btn-action btn-delete" onclick="deleteLot(' + lot.id + ', \'' + lot.name + '\')">';
+                html += '<i class="fas fa-trash"></i> Уд.';
+                html += '</button>';
+                html += '</td>';
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            tableDiv.innerHTML = html;
+        }
+        
+        function showCreateModal() {
+            alert('Форма создания участка в разработке');
+        }
+        
+        function editLot(id) {
+            alert('Редактирование участка #' + id + ' в разработке');
+        }
+        
+        function deleteLot(id, name) {
+            if (confirm('Удалить участок "' + name + '"?')) {
+                alert('Удаление участка в разработке');
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', loadLots);
+    </script>
+    
+    <style>
+        .btn-action {
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            margin: 2px;
+        }
+        
+        .btn-edit { background: #228be6; color: white; }
+        .btn-delete { background: #fa5252; color: white; }
+    </style>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест путей</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .test { padding: 20px; margin: 10px; }
+        .path1 { background: lightgreen; }
+        .path2 { background: lightcoral; }
+    </style>
+</head>
+<body>
+    <div class="test path1">
+        <h2>Тест пути /css/style.css</h2>
+        <p>Если этот блок зелёный — CSS загружен через абсолютный путь</p>
+    </div>
+    <div class="test path2">
+        <h2>Тест пути css/style.css</h2>
+        <p>Если этот блок красный — CSS загружен через относительный путь</p>
+    </div>
+    <script>
+        console.log("Текущий URL:", window.location.href);
+        console.log("Проверяем загрузку CSS...");
+    </script>
+</body>
+</html>
