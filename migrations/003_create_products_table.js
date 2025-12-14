@@ -1,38 +1,50 @@
 ﻿exports.up = function(knex) {
   return knex.schema.createTable('products', (table) => {
     table.bigIncrements('id').primary();
-    table.string('name', 255).notNullable();
-    table.string('drawing_number', 100).notNullable();
-    table.string('serial_number', 100);
+    table.string('name', 255).notNullable().comment('Название типа изделия');
     
-    table.enum('type', ['semi_finished', 'assembly', 'finished_product'])
-      .defaultTo('finished_product');
-    
-    table.enum('unit', ['pcs', 'set']).defaultTo('pcs');
-    
-    table.bigInteger('next_stage_product_id')
+    // Участок, на котором производится
+    table.bigInteger('lot_id')
       .unsigned()
       .references('id')
-      .inTable('products')
-      .onDelete('SET NULL');
+      .inTable('lots')
+      .onDelete('SET NULL')
+      .comment('Участок производства');
     
-    table.bigInteger('previous_stage_product_id')
-      .unsigned()
-      .references('id')
-      .inTable('products')
-      .onDelete('SET NULL');
+    // Тип изделия - добавляем 'detail' (деталь)
+    table.enum('type', ['semi_finished', 'assembly', 'finished_product', 'detail'])
+      .defaultTo('finished_product')
+      .comment('Тип: semi_finished-полуфабрикат, assembly-узел, finished_product-готовая продукция, detail-деталь');
     
-    table.jsonb('technical_requirements');
-    table.text('description');
-    table.boolean('is_active').defaultTo(true);
-    table.integer('bitrix24_id').unique();
+    // Единица измерения
+    table.enum('unit', ['pcs', 'set'])
+      .defaultTo('pcs')
+      .comment('Единица измерения: pcs-шт, set-компл.');
+    
+    // Время на приёмку (минуты)
+    table.integer('inspection_time_minutes')
+      .defaultTo(30)
+      .comment('Примерное время на приёмку ОТК (минуты)');
+    
+    // Чек-лист (текст для справки)
+    table.text('checklist_text').comment('Чек-лист приёмки (текстовый формат)');
+    
+    // Активность
+    table.boolean('is_active').defaultTo(true).comment('Активен ли тип изделия');
+    
+    // Интеграция с Bitrix24
+    table.integer('bitrix24_id').unique().comment('ID в Bitrix24');
+    
+    // Временные метки
     table.timestamps(true, true);
     
-    table.index(['drawing_number']);
-    table.index(['serial_number']);
-    table.index(['type']);
+    // Индексы
     table.index(['name']);
-    table.unique(['drawing_number', 'serial_number']);
+    table.index(['lot_id']);
+    table.index(['type']);
+    table.index(['is_active']);
+    
+    table.comment('Типы изделий (номенклатура)');
   });
 };
 

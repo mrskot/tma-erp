@@ -1,27 +1,37 @@
-// src/controllers/productController.js
 const Product = require('../models/Product');
 
 class ProductController {
   // Получить все изделия
   static async getAll(req, res) {
     try {
-      const { type, search } = req.query;
+      const { type, search, lot_id } = req.query;
       
       let products;
       
       if (search) {
         products = await Product.searchByName(search);
       } else if (type) {
-        products = await db('products')
-          .where({ type, is_active: true })
-          .orderBy('name', 'asc');
+        // Фильтрация по типу
+        const allProducts = await Product.findAll();
+        products = allProducts.filter(p => p.type === type);
+      } else if (lot_id) {
+        // Фильтрация по участку
+        products = await Product.getByLot(lot_id);
       } else {
         products = await Product.findAll();
       }
       
+      // Получаем доступные типы и единицы для фильтров
+      const typesForFilter = Product.getTypesForSelect();
+      const unitsForFilter = Product.getUnitsForSelect();
+      
       res.json({
         success: true,
         count: products.length,
+        filters: {
+          types: typesForFilter,
+          units: unitsForFilter
+        },
         products
       });
       
@@ -50,7 +60,9 @@ class ProductController {
       
       res.json({
         success: true,
-        product
+        product,
+        types: Product.getTypesForSelect(),
+        units: Product.getUnitsForSelect()
       });
       
     } catch (error) {
@@ -62,81 +74,37 @@ class ProductController {
     }
   }
 
-  // Найти изделие по чертежу
-  static async getByDrawingNumber(req, res) {
-    try {
-      const { drawing_number } = req.params;
-      
-      if (!drawing_number) {
-        return res.status(400).json({
-          success: false,
-          error: 'Требуется номер чертежа'
-        });
-      }
-      
-      const product = await Product.findByDrawingNumber(drawing_number);
-      
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          error: 'Изделие с таким номером чертежа не найдено'
-        });
-      }
-      
-      res.json({
-        success: true,
-        product
-      });
-      
-    } catch (error) {
-      console.error('Get product by drawing number error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при поиске изделия'
-      });
-    }
-  }
-
   // Создать изделие
   static async create(req, res) {
     try {
       const { 
         name, 
-        drawing_number, 
+        lot_id, 
         type, 
         unit,
-        serial_number,
-        description 
+        inspection_time_minutes,
+        checklist_text
       } = req.body;
       
-      if (!name || !drawing_number) {
+      if (!name) {
         return res.status(400).json({
           success: false,
-          error: 'Обязательные поля: name, drawing_number'
-        });
-      }
-      
-      // Проверяем уникальность чертежа
-      const existingProduct = await Product.findByDrawingNumber(drawing_number);
-      if (existingProduct) {
-        return res.status(409).json({
-          success: false,
-          error: 'Изделие с таким номером чертежа уже существует'
+          error: 'Обязательное поле: name'
         });
       }
       
       const product = await Product.create({
         name,
-        drawing_number,
-        type: type || 'finished_product',
-        unit: unit || 'pcs',
-        serial_number,
-        description
+        lot_id,
+        type,
+        unit,
+        inspection_time_minutes,
+        checklist_text
       });
       
       res.status(201).json({
         success: true,
-        message: 'Изделие успешно создано',
+        message: 'Тип изделия успешно создан',
         product
       });
       
@@ -144,7 +112,7 @@ class ProductController {
       console.error('Create product error:', error);
       res.status(500).json({
         success: false,
-        error: 'Ошибка при создании изделия'
+        error: 'Ошибка при создании типа изделия'
       });
     }
   }
@@ -160,26 +128,15 @@ class ProductController {
       if (!product) {
         return res.status(404).json({
           success: false,
-          error: 'Изделие не найдено'
+          error: 'Тип изделия не найден'
         });
-      }
-      
-      // Если меняется номер чертежа, проверяем уникальность
-      if (updates.drawing_number && updates.drawing_number !== product.drawing_number) {
-        const existingProduct = await Product.findByDrawingNumber(updates.drawing_number);
-        if (existingProduct && existingProduct.id !== parseInt(id)) {
-          return res.status(409).json({
-            success: false,
-            error: 'Изделие с таким номером чертежа уже существует'
-          });
-        }
       }
       
       const updatedProduct = await Product.update(id, updates);
       
       res.json({
         success: true,
-        message: 'Изделие обновлено',
+        message: 'Тип изделия обновлен',
         product: updatedProduct
       });
       
@@ -187,7 +144,7 @@ class ProductController {
       console.error('Update product error:', error);
       res.status(500).json({
         success: false,
-        error: 'Ошибка при обновлении изделия'
+        error: 'Ошибка при обновлении типа изделия'
       });
     }
   }
@@ -201,7 +158,7 @@ class ProductController {
       if (!product) {
         return res.status(404).json({
           success: false,
-          error: 'Изделие не найдено'
+          error: 'Тип изделия не найден'
         });
       }
       
@@ -209,32 +166,31 @@ class ProductController {
       
       res.json({
         success: true,
-        message: 'Изделие деактивировано'
+        message: 'Тип изделия деактивирован'
       });
       
     } catch (error) {
       console.error('Delete product error:', error);
       res.status(500).json({
         success: false,
-        error: 'Ошибка при удалении изделия'
+        error: 'Ошибка при удалении типа изделия'
       });
     }
   }
 
-  // Получить маршрут производства
+  // Получить маршрут производства (заглушка)
   static async getProductionRoute(req, res) {
     try {
       const { id } = req.params;
       
-      const product = await Product.findById(id);
-      if (!product) {
+      const route = await Product.getProductionRoute(id);
+      
+      if (!route) {
         return res.status(404).json({
           success: false,
-          error: 'Изделие не найдено'
+          error: 'Тип изделия не найден'
         });
       }
-      
-      const route = await Product.getProductionRoute(id);
       
       res.json({
         success: true,
@@ -245,7 +201,7 @@ class ProductController {
       console.error('Get production route error:', error);
       res.status(500).json({
         success: false,
-        error: 'Ошибка при получении маршрута производства'
+        error: 'Ошибка при получении маршрута'
       });
     }
   }
@@ -260,7 +216,7 @@ class ProductController {
       if (!stats) {
         return res.status(404).json({
           success: false,
-          error: 'Изделие не найдено'
+          error: 'Тип изделия не найден'
         });
       }
       
@@ -273,7 +229,24 @@ class ProductController {
       console.error('Get product stats error:', error);
       res.status(500).json({
         success: false,
-        error: 'Ошибка при получении статистики изделия'
+        error: 'Ошибка при получении статистики'
+      });
+    }
+  }
+
+  // Получить справочники (типы, единицы измерения)
+  static async getReferenceData(req, res) {
+    try {
+      res.json({
+        success: true,
+        types: Product.getTypesForSelect(),
+        units: Product.getUnitsForSelect()
+      });
+    } catch (error) {
+      console.error('Get reference data error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка при получении справочных данных'
       });
     }
   }

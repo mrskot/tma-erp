@@ -1,4 +1,3 @@
-// src/models/Application.js
 const knex = require('knex');
 const knexfile = require('../../knexfile');
 
@@ -6,18 +5,8 @@ const environment = process.env.NODE_ENV || 'development';
 const db = knex(knexfile[environment]);
 
 class Application {
-  // Генерация номера заявки
-  static generateApplicationNumber() {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `APP-${year}${month}${day}-${random}`;
-  }
-
-  // Получить все заявки
-  static async findAll() {
+  // Получить все заявки с данными участков и изделий
+  static async findAll(limit = 100) {
     return db('applications as a')
       .join('lots as l', 'a.lot_id', 'l.id')
       .join('products as p', 'a.product_id', 'p.id')
@@ -25,12 +14,14 @@ class Application {
         'a.*',
         'l.name as lot_name',
         'p.name as product_name',
-        'p.drawing_number'
+        'p.type as product_type',
+        'p.unit as product_unit'  // Убрали drawing_number, добавили type и unit
       )
-      .orderBy('a.created_at', 'desc');
+      .orderBy('a.created_at', 'desc')
+      .limit(limit);
   }
 
-  // Найти заявку по ID
+  // Найти заявку по ID с полными данными
   static async findById(id) {
     return db('applications as a')
       .join('lots as l', 'a.lot_id', 'l.id')
@@ -40,15 +31,16 @@ class Application {
         'l.name as lot_name',
         'l.manager_telegram_id as lot_manager',
         'p.name as product_name',
-        'p.drawing_number',
-        'p.type as product_type'
+        'p.type as product_type',
+        'p.unit as product_unit',
+        'p.inspection_time_minutes as product_inspection_time'
       )
       .where('a.id', id)
       .first();
   }
 
-  // Найти заявку по номеру
-  static async findByNumber(appNumber) {
+  // Найти заявки по статусу
+  static async findByStatus(status) {
     return db('applications as a')
       .join('lots as l', 'a.lot_id', 'l.id')
       .join('products as p', 'a.product_id', 'p.id')
@@ -56,27 +48,80 @@ class Application {
         'a.*',
         'l.name as lot_name',
         'p.name as product_name',
-        'p.drawing_number'
+        'p.type as product_type'
       )
-      .where('a.application_number', appNumber)
-      .first();
+      .where('a.status', status)
+      .orderBy('a.created_at', 'desc');
+  }
+
+  // Найти заявки по Telegram ID создателя
+  static async findByCreator(telegramId, limit = 50) {
+    return db('applications as a')
+      .join('lots as l', 'a.lot_id', 'l.id')
+      .join('products as p', 'a.product_id', 'p.id')
+      .select(
+        'a.*',
+        'l.name as lot_name',
+        'p.name as product_name',
+        'p.type as product_type'
+      )
+      .where('a.creator_telegram_id', telegramId)
+      .orderBy('a.created_at', 'desc')
+      .limit(limit);
+  }
+
+  // Найти заявки по участку
+  static async findByLot(lotId, limit = 50) {
+    return db('applications as a')
+      .join('lots as l', 'a.lot_id', 'l.id')
+      .join('products as p', 'a.product_id', 'p.id')
+      .select(
+        'a.*',
+        'l.name as lot_name',
+        'p.name as product_name',
+        'p.type as product_type'
+      )
+      .where('a.lot_id', lotId)
+      .orderBy('a.created_at', 'desc')
+      .limit(limit);
+  }
+
+  // Найти заявки по изделию
+  static async findByProduct(productId, limit = 50) {
+    return db('applications as a')
+      .join('lots as l', 'a.lot_id', 'l.id')
+      .join('products as p', 'a.product_id', 'p.id')
+      .select(
+        'a.*',
+        'l.name as lot_name',
+        'p.name as product_name',
+        'p.type as product_type'
+      )
+      .where('a.product_id', productId)
+      .orderBy('a.created_at', 'desc')
+      .limit(limit);
   }
 
   // Создать заявку
   static async create(applicationData) {
-    const applicationNumber = this.generateApplicationNumber();
-    
     const [application] = await db('applications')
       .insert({
-        application_number: applicationNumber,
+        application_number: applicationData.application_number,
         lot_id: applicationData.lot_id,
         product_id: applicationData.product_id,
         creator_telegram_id: applicationData.creator_telegram_id,
-        status: 'new',
+        status: applicationData.status || 'new',
+        desired_inspection_time: applicationData.desired_inspection_time || null,
         quantity: applicationData.quantity || 1,
         batch_number: applicationData.batch_number || null,
         notes: applicationData.notes || null,
-        desired_inspection_time: applicationData.desired_inspection_time || null
+        otk_inspector_telegram_id: applicationData.otk_inspector_telegram_id || null,
+        sla_response_minutes: applicationData.sla_response_minutes || null,
+        sla_inspection_minutes: applicationData.sla_inspection_minutes || null,
+        discrepancy_count: applicationData.discrepancy_count || 0,
+        resolution_summary: applicationData.resolution_summary || '{"fixed": 0, "kr_pending": 0, "defect": 0, "political": 0}',
+        bitrix24_id: applicationData.bitrix24_id || null,
+        bitrix24_process_stage: applicationData.bitrix24_process_stage || null
       })
       .returning('*');
     
@@ -94,156 +139,83 @@ class Application {
     return this.findById(id);
   }
 
-  // Назначить ОТК контролёра
-  static async assignToOTK(id, inspectorTelegramId) {
-    return db('applications')
-      .where({ id })
-      .update({
-        otk_inspector_telegram_id: inspectorTelegramId,
-        status: 'assigned_to_otk',
-        assigned_at: new Date(),
-        updated_at: new Date()
-      });
+  // Удалить заявку
+  static async delete(id) {
+    return db('applications').where({ id }).delete();
   }
 
-  // Начать проверку
-  static async startInspection(id) {
-    return db('applications')
-      .where({ id })
-      .update({
-        status: 'in_progress',
-        started_at: new Date(),
-        updated_at: new Date()
-      });
-  }
-
-  // Завершить проверку (принять/отклонить)
-  static async completeInspection(id, result, inspectorTelegramId) {
-    const status = result === 'accepted' ? 'accepted' : 'rejected';
+  // Получить статистику по заявкам
+  static async getStats() {
+    const stats = await db('applications')
+      .select(db.raw('COUNT(*) as total'))
+      .select(db.raw('COUNT(CASE WHEN status = \'accepted\' THEN 1 END) as accepted'))
+      .select(db.raw('COUNT(CASE WHEN status = \'rejected\' THEN 1 END) as rejected'))
+      .select(db.raw('COUNT(CASE WHEN status = \'new\' THEN 1 END) as new'))
+      .select(db.raw('COUNT(CASE WHEN status = \'in_progress\' THEN 1 END) as in_progress'))
+      .first();
     
-    return db('applications')
-      .where({ id })
-      .update({
-        status: status,
-        completed_at: new Date(),
-        otk_inspector_telegram_id: inspectorTelegramId,
-        updated_at: new Date()
-      });
+    return stats;
   }
 
-  // Получить заявки по участку
-  static async getByLot(lotId, status = null) {
-    let query = db('applications as a')
-      .join('products as p', 'a.product_id', 'p.id')
-      .select(
-        'a.*',
-        'p.name as product_name',
-        'p.drawing_number'
-      )
-      .where('a.lot_id', lotId);
-    
-    if (status) {
-      query = query.where('a.status', status);
-    }
-    
-    return query.orderBy('a.created_at', 'desc');
-  }
-
-  // Получить заявки по мастеру (создателю)
-  static async getByCreator(telegramId) {
+  // Получить заявки для контролёра ОТК
+  static async getForInspector(telegramId) {
     return db('applications as a')
       .join('lots as l', 'a.lot_id', 'l.id')
       .join('products as p', 'a.product_id', 'p.id')
       .select(
         'a.*',
         'l.name as lot_name',
+        'l.priority_level as lot_priority',
+        'l.distance_to_otk_meters as lot_distance',
         'p.name as product_name',
-        'p.drawing_number'
+        'p.inspection_time_minutes as product_inspection_time'
       )
-      .where('a.creator_telegram_id', telegramId)
-      .orderBy('a.created_at', 'desc');
+      .where('a.otk_inspector_telegram_id', telegramId)
+      .whereIn('a.status', ['assigned_to_otk', 'in_progress'])
+      .orderBy('l.priority_level', 'asc')
+      .orderBy('a.created_at', 'asc');
   }
 
-  // Получить заявки для ОТК контролёра
-  static async getForInspector(telegramId, status = null) {
-    let query = db('applications as a')
-      .join('lots as l', 'a.lot_id', 'l.id')
-      .join('products as p', 'a.product_id', 'p.id')
-      .select(
-        'a.*',
-        'l.name as lot_name',
-        'p.name as product_name',
-        'p.drawing_number'
-      )
-      .where('a.otk_inspector_telegram_id', telegramId);
-    
-    if (status) {
-      query = query.where('a.status', status);
-    }
-    
-    return query.orderBy('a.priority', 'desc').orderBy('a.created_at', 'asc');
-  }
-
-  // Получить новые заявки для ОТК (ещё не назначенные)
-  static async getNewForOTK() {
+  // Получить необработанные заявки для назначения
+  static async getUnassigned() {
     return db('applications as a')
       .join('lots as l', 'a.lot_id', 'l.id')
       .join('products as p', 'a.product_id', 'p.id')
       .select(
         'a.*',
         'l.name as lot_name',
-        'l.priority_level',
-        'l.distance_to_otk_meters',
+        'l.priority_level as lot_priority',
+        'l.distance_to_otk_meters as lot_distance',
         'p.name as product_name',
-        'p.drawing_number'
+        'p.inspection_time_minutes as product_inspection_time'
       )
       .where('a.status', 'new')
       .orderBy('l.priority_level', 'asc')
-      .orderBy('l.distance_to_otk_meters', 'asc')
       .orderBy('a.created_at', 'asc');
   }
 
   // Обновить статистику несоответствий
-  static async updateDiscrepancyStats(id, stats) {
-    return db('applications')
-      .where({ id })
+  static async updateDiscrepancyStats(applicationId) {
+    const stats = await db('discrepancies')
+      .where('application_id', applicationId)
+      .select(db.raw('COUNT(*) as total'))
+      .select(db.raw('COUNT(CASE WHEN resolution_type = \'fixed\' THEN 1 END) as fixed'))
+      .select(db.raw('COUNT(CASE WHEN resolution_type = \'kr_approved\' THEN 1 END) as kr_pending'))
+      .select(db.raw('COUNT(CASE WHEN resolution_type = \'defect\' THEN 1 END) as defect'))
+      .select(db.raw('COUNT(CASE WHEN resolution_type = \'political_close\' THEN 1 END) as political'))
+      .first();
+    
+    await db('applications')
+      .where('id', applicationId)
       .update({
         discrepancy_count: stats.total || 0,
-        resolution_summary: JSON.stringify(stats),
-        updated_at: new Date()
+        resolution_summary: {
+          fixed: stats.fixed || 0,
+          kr_pending: stats.kr_pending || 0,
+          defect: stats.defect || 0,
+          political: stats.political || 0
+        }
       });
-  }
-
-  // Получить статистику по заявкам
-  static async getStats(period = 'today') {
-    const now = new Date();
-    let startDate;
-    
-    switch (period) {
-      case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        break;
-      case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      default:
-        startDate = new Date(0); // все время
-    }
-    
-    const stats = await db('applications')
-      .select(
-        db.raw('COUNT(*) as total'),
-        db.raw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as accepted', ['accepted']),
-        db.raw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as rejected', ['rejected']),
-        db.raw('SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) as in_progress', ['new', 'assigned_to_otk', 'in_progress']),
-        db.raw('AVG(sla_response_minutes) as avg_response_time'),
-        db.raw('AVG(sla_inspection_minutes) as avg_inspection_time')
-      )
-      .where('created_at', '>=', startDate)
-      .first();
     
     return stats;
   }

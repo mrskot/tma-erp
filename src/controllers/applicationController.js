@@ -7,28 +7,26 @@ class ApplicationController {
   // Получить все заявки
   static async getAll(req, res) {
     try {
-      const { status, lot_id, creator_telegram_id } = req.query;
+      const { status, limit, creator, lot_id, product_id } = req.query;
       
       let applications;
       
-      if (lot_id) {
-        applications = await Application.getByLot(lot_id, status);
-      } else if (creator_telegram_id) {
-        applications = await Application.getByCreator(creator_telegram_id);
-      } else if (status) {
-        applications = await db('applications as a')
-          .join('lots as l', 'a.lot_id', 'l.id')
-          .join('products as p', 'a.product_id', 'p.id')
-          .select('a.*', 'l.name as lot_name', 'p.name as product_name', 'p.drawing_number')
-          .where('a.status', status)
-          .orderBy('a.created_at', 'desc');
+      if (status) {
+        applications = await Application.findByStatus(status);
+      } else if (creator) {
+        applications = await Application.findByCreator(creator, parseInt(limit) || 50);
+      } else if (lot_id) {
+        applications = await Application.findByLot(lot_id, parseInt(limit) || 50);
+      } else if (product_id) {
+        applications = await Application.findByProduct(product_id, parseInt(limit) || 50);
       } else {
-        applications = await Application.findAll();
+        applications = await Application.findAll(parseInt(limit) || 100);
       }
       
       res.json({
         success: true,
         count: applications.length,
+        filters: { status, limit, creator, lot_id, product_id },
         applications
       });
       
