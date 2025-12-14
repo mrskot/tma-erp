@@ -1,256 +1,311 @@
 ﻿const Lot = require('../models/Lot');
-const User = require('../models/User');
 
 class LotController {
-  // Получить все участки
+  // === ОСНОВНЫЕ CRUD ===
+  
+  // 1. GET /api/v1/lots — все участки
   static async getAll(req, res) {
     try {
-      const { role, telegram_id } = req.query;
+      const { include_inactive, priority, urgent_only } = req.query;
       
       let lots;
       
-      if (role && ['admin', 'super_admin', 'quality_director'].includes(role)) {
-        // Администраторы видят все участки
-        lots = await Lot.findAll();
-      } else if (role === 'master' && telegram_id) {
-        // Мастера видят только свои участки
-        lots = await Lot.findByManager(telegram_id);
+      if (urgent_only === 'true') {
+        lots = await Lot.getUrgentLots();
+      } else if (priority) {
+        lots = await Lot.findByPriority(parseInt(priority));
       } else {
-        // По умолчанию - все участки (ограниченные данные)
-        lots = await Lot.findAll();
-        lots = lots.map(lot => ({
-          id: lot.id,
-          name: lot.name,
-          priority_level: lot.priority_level,
-          manager_telegram_id: lot.manager_telegram_id
-        }));
+        lots = await Lot.findAll(include_inactive === 'true');
       }
       
-      res.json({
-        success: true,
+      res.json({ 
+        success: true, 
         count: lots.length,
-        lots
+        filters: { include_inactive, priority, urgent_only },
+        lots 
       });
       
     } catch (error) {
       console.error('Get all lots error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при получении списка участков'
+      res.status(500).json({ 
+        success: false, 
+        error: 'Ошибка при получении списка участков',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
-
-  // Получить участок по ID
+  
+  // 2. GET /api/v1/lots/:id — участок по ID
   static async getById(req, res) {
     try {
       const { id } = req.params;
-      
       const lot = await Lot.findById(id);
       
       if (!lot) {
-        return res.status(404).json({
-          success: false,
-          error: 'Участок не найден'
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Участок не найден' 
         });
       }
       
-      res.json({
-        success: true,
-        lot
-      });
+      res.json({ success: true, lot });
       
     } catch (error) {
       console.error('Get lot by id error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при получении участка'
+      res.status(500).json({ 
+        success: false, 
+        error: 'Ошибка при получении участка' 
       });
     }
   }
-
-  // Создать участок
+  
+  // 3. POST /api/v1/lots — создать участок
   static async create(req, res) {
     try {
-      const { name, manager_telegram_id, priority_level, description } = req.body;
+      const required = ['name', 'manager_telegram_id'];
+      const missing = required.filter(field => !req.body[field]);
       
-      if (!name || !manager_telegram_id) {
-        return res.status(400).json({
-          success: false,
-          error: 'Обязательные поля: name, manager_telegram_id'
+      if (missing.length > 0) {
+        return res.status(400).json({ 
+          success: false, 
+          error: `Отсутствуют обязательные поля: ${missing.join(', ')}` 
         });
       }
       
-      // Создаём участок
-      const lot = await Lot.create({
-        name,
-        manager_telegram_id,
-        priority_level: priority_level || 3,
-        description: description || null
-      });
+      // Валидация приоритета
+      if (req.body.priority_level && (req.body.priority_level < 1 || req.body.priority_level > 5)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Приоритет должен быть от 1 до 5' 
+        });
+      }
       
-      res.status(201).json({
-        success: true,
+      const lot = await Lot.create(req.body);
+      
+      res.status(201).json({ 
+        success: true, 
         message: 'Участок успешно создан',
-        lot
+        lot 
       });
       
     } catch (error) {
       console.error('Create lot error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при создании участка'
-      });
-    }
-  }
-
-  // Обновить участок
-  static async update(req, res) {
-    try {
-      const { id } = req.params;
-      const updates = req.body;
       
-      // Проверяем существование участка
-      const lot = await Lot.findById(id);
-      if (!lot) {
-        return res.status(404).json({
-          success: false,
-          error: 'Участок не найден'
+      if (error.code === '23505') { // Unique violation
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Участок с таким названием уже существует' 
         });
       }
       
-      // Обновляем участок
-      const updatedLot = await Lot.update(id, updates);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Ошибка при создании участка' 
+      });
+    }
+  }
+  
+  // 4. PUT /api/v1/lots/:id — обновить участок
+  static async update(req, res) {
+    try {
+      const { id } = req.params;
       
-      res.json({
-        success: true,
-        message: 'Участок обновлён',
-        lot: updatedLot
+      const lot = await Lot.findById(id);
+      if (!lot) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Участок не найден' 
+        });
+      }
+      
+      // Валидация приоритета
+      if (req.body.priority_level && (req.body.priority_level < 1 || req.body.priority_level > 5)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Приоритет должен быть от 1 до 5' 
+        });
+      }
+      
+      const updatedLot = await Lot.update(id, req.body);
+      
+      res.json({ 
+        success: true, 
+        message: 'Участок успешно обновлён',
+        lot: updatedLot 
       });
       
     } catch (error) {
       console.error('Update lot error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при обновлении участка'
+      res.status(500).json({ 
+        success: false, 
+        error: 'Ошибка при обновлении участка' 
       });
     }
   }
-
-  // Удалить участок
+  
+  // 5. DELETE /api/v1/lots/:id — удалить участок (деактивировать)
   static async delete(req, res) {
     try {
       const { id } = req.params;
+      const { hard_delete } = req.query;
       
-      // Проверяем существование участка
       const lot = await Lot.findById(id);
       if (!lot) {
-        return res.status(404).json({
-          success: false,
-          error: 'Участок не найден'
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Участок не найден' 
         });
       }
       
-      // Удаляем участок
-      await Lot.delete(id);
-      
-      res.json({
-        success: true,
-        message: 'Участок удалён'
-      });
+      if (hard_delete === 'true') {
+        // Полное удаление (только для админов)
+        await Lot.hardDelete(id);
+        res.json({ 
+          success: true, 
+          message: 'Участок полностью удалён' 
+        });
+      } else {
+        // Мягкое удаление
+        await Lot.delete(id);
+        res.json({ 
+          success: true, 
+          message: 'Участок деактивирован' 
+        });
+      }
       
     } catch (error) {
       console.error('Delete lot error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Ошибка при удалении участка'
+      res.status(500).json({ 
+        success: false, 
+        error: 'Ошибка при удалении участка' 
       });
     }
   }
-
-  // Назначить заместителя
-  static async assignSubstitute(req, res) {
-    try {
-      const { id } = req.params;
-      const { substitute_telegram_id } = req.body;
-      
-      if (!substitute_telegram_id) {
-        return res.status(400).json({
-          success: false,
-          error: 'Требуется substitute_telegram_id'
-        });
-      }
-      
-      // Проверяем существование участка
-      const lot = await Lot.findById(id);
-      if (!lot) {
-        return res.status(404).json({
-          success: false,
-          error: 'Участок не найден'
-        });
-      }
-      
-      // Назначаем заместителя
-      await Lot.assignSubstitute(id, substitute_telegram_id);
-      
-      res.json({
-        success: true,
-        message: 'Заместитель назначен'
-      });
-      
-    } catch (error) {
-      console.error('Assign substitute error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при назначении заместителя'
-      });
-    }
-  }
-
-  // Получить участки для ОТК (с приоритетом)
+  
+  // === СПЕЦИАЛЬНЫЕ МЕТОДЫ ===
+  
+  // 6. GET /api/v1/lots/otk — участки для ОТК
   static async getForOTK(req, res) {
     try {
       const lots = await Lot.getForOTK();
-      
-      res.json({
-        success: true,
+      res.json({ 
+        success: true, 
         count: lots.length,
-        lots
+        lots 
       });
-      
     } catch (error) {
       console.error('Get lots for OTK error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при получении участков для ОТК'
+      res.status(500).json({ 
+        success: false, 
+        error: 'Ошибка при получении участков для ОТК' 
       });
     }
   }
-
-  // Получить статистику по участку
+  
+  // 7. GET /api/v1/lots/:id/stats — статистика по участку
   static async getStats(req, res) {
     try {
       const { id } = req.params;
-      
       const stats = await Lot.getStats(id);
       
       if (!stats) {
-        return res.status(404).json({
-          success: false,
-          error: 'Участок не найден'
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Участок не найден' 
         });
       }
       
-      res.json({
-        success: true,
-        stats
-      });
+      res.json({ success: true, stats });
       
     } catch (error) {
       console.error('Get lot stats error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Ошибка при получении статистики участка'
+      res.status(500).json({ 
+        success: false, 
+        error: 'Ошибка при получении статистики участка' 
+      });
+    }
+  }
+  
+  // 8. POST /api/v1/lots/:id/deputy — назначить заместителя
+  static async assignDeputy(req, res) {
+    try {
+      const { id } = req.params;
+      const { deputy_manager_telegram_id } = req.body;
+      
+      if (!deputy_manager_telegram_id) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Требуется deputy_manager_telegram_id' 
+        });
+      }
+      
+      const lot = await Lot.findById(id);
+      if (!lot) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Участок не найден' 
+        });
+      }
+      
+      await Lot.assignDeputy(id, deputy_manager_telegram_id);
+      
+      res.json({ 
+        success: true, 
+        message: 'Заместитель назначен' 
+      });
+      
+    } catch (error) {
+      console.error('Assign deputy error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Ошибка при назначении заместителя' 
+      });
+    }
+  }
+  
+  // 9. DELETE /api/v1/lots/:id/deputy — снять заместителя
+  static async removeDeputy(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const lot = await Lot.findById(id);
+      if (!lot) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Участок не найден' 
+        });
+      }
+      
+      await Lot.removeDeputy(id);
+      
+      res.json({ 
+        success: true, 
+        message: 'Заместитель снят' 
+      });
+      
+    } catch (error) {
+      console.error('Remove deputy error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Ошибка при снятии заместителя' 
+      });
+    }
+  }
+  
+  // 10. GET /api/v1/lots/urgent — участки, требующие срочного внимания
+  static async getUrgent(req, res) {
+    try {
+      const lots = await Lot.getUrgentLots();
+      res.json({ 
+        success: true, 
+        count: lots.length,
+        lots 
+      });
+    } catch (error) {
+      console.error('Get urgent lots error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Ошибка при получении срочных участков' 
       });
     }
   }

@@ -130,6 +130,35 @@ class UserController {
     }
   }
 
+  // Получить всех активных пользователей (для выпадающих списков)
+  static async getAllActiveUsers(req, res) {
+    try {
+      const users = await User.findAllActive();
+      
+      res.json({
+        success: true,
+        count: users.length,
+        users: users.map(user => ({
+          telegram_id: user.telegram_id,
+          username: user.username,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          role: user.role,
+          full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+          display_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username
+        }))
+      });
+      
+    } catch (error) {
+      console.error('Get all users error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Ошибка при получении списка пользователей' 
+      });
+    }
+  }
+
+
   // Обновить пользователя
   static async update(req, res) {
     try {

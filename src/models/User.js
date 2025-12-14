@@ -35,6 +35,14 @@ class User {
       .orderBy('created_at', 'desc');
   }
 
+  // Получить всех активных пользователей
+  static async findAllActive() {
+    return db('users')
+      .where('is_active', true)
+      .orderBy('first_name', 'asc')
+      .orderBy('last_name', 'asc');
+  }
+
   // Обновить пользователя
   static async update(telegramId, updates) {
     updates.updated_at = new Date();

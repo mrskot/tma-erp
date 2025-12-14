@@ -18,23 +18,229 @@
                 <a href="/admin" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Назад в админку
                 </a>
-                <button onclick="showCreateModal()" class="btn btn-success">
+                <button onclick="showCreateForm()" class="btn btn-success">
                     <i class="fas fa-plus"></i> Добавить участок
                 </button>
             </div>
         </nav>
-        
+
+        <!-- Поиск и фильтры -->
         <div class="content-card">
-            <h2><i class="fas fa-table"></i> Список участков</h2>
+            <h3><i class="fas fa-search"></i> Поиск и фильтры</h3>
+            <div class="search-filters">
+                <div class="form-group" style="flex: 2;">
+                    <label for="search-input">Поиск по названию</label>
+                    <input type="text" id="search-input" class="form-control" placeholder="Введите название..." onkeyup="filterLots()">
+                </div>
+                <div class="form-group">
+                    <label for="filter-priority">Приоритет</label>
+                    <select id="filter-priority" class="form-control" onchange="filterLots()">
+                        <option value="">Все</option>
+                        <option value="1">1 - Высший</option>
+                        <option value="2">2 - Высокий</option>
+                        <option value="3">3 - Средний</option>
+                        <option value="4">4 - Низкий</option>
+                        <option value="5">5 - Минимальный</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filter-status">Статус</label>
+                    <select id="filter-status" class="form-control" onchange="filterLots()">
+                        <option value="">Все</option>
+                        <option value="active">Активные</option>
+                        <option value="inactive">Неактивные</option>
+                        <option value="urgent">Срочные</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button onclick="resetFilters()" class="btn btn-secondary" style="margin-top: 8px;">
+                        <i class="fas fa-redo"></i> Сбросить
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Форма создания/редактирования -->
+        <div id="lot-form-container" class="content-card" style="display: none;">
+            <h2 id="form-title"><i class="fas fa-edit"></i> Создание участка</h2>
+            <form id="lot-form" onsubmit="saveLot(event)">
+                <input type="hidden" id="lot-id" value="">
+                
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label for="name">Название участка *</label>
+                        <input type="text" id="name" class="form-control" required placeholder="Например: Цех 1.1 - Сварка">
+                    </div>
+                    <div class="form-group">
+                        <label for="priority_level">Приоритет *</label>
+                        <select id="priority_level" class="form-control" required>
+                            <option value="1">1 - Критичный (высший)</option>
+                            <option value="2">2 - Высокий</option>
+                            <option value="3" selected>3 - Средний</option>
+                            <option value="4">4 - Низкий</option>
+                            <option value="5">5 - Минимальный</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Описание</label>
+                    <textarea id="description" class="form-control" rows="2" placeholder="Краткое описание участка..."></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="manager_telegram_id">Основной мастер *</label>
+                        <select id="manager_telegram_id" class="form-control" required>
+                            <option value="">-- Загрузка пользователей... --</option>
+                        </select>
+                        <small class="text-muted">Выберите ответственного сотрудника</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="deputy_manager_telegram_id">Заместитель</label>
+                        <select id="deputy_manager_telegram_id" class="form-control">
+                            <option value="">-- Нет заместителя --</option>
+                        </select>
+                        <small class="text-muted">Может быть любой сотрудник</small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="distance_to_otk_meters">Расстояние до ОТК (метры)</label>
+                        <input type="number" id="distance_to_otk_meters" class="form-control" min="0" placeholder="150">
+                    </div>
+                    <div class="form-group">
+                        <label for="working_hours_start">Начало работы</label>
+                        <input type="time" id="working_hours_start" class="form-control" value="08:00">
+                    </div>
+                    <div class="form-group">
+                        <label for="working_hours_end">Конец работы</label>
+                        <input type="time" id="working_hours_end" class="form-control" value="20:00">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="is_active">Статус активности</label>
+                        <select id="is_active" class="form-control">
+                            <option value="true" selected>Активен</option>
+                            <option value="false">Неактивен</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="requires_urgent_attention">Требует срочного внимания</label>
+                        <select id="requires_urgent_attention" class="form-control">
+                            <option value="false" selected>Нет</option>
+                            <option value="true">Да</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bitrix24_id">Bitrix24 ID</label>
+                        <input type="number" id="bitrix24_id" class="form-control" placeholder="1001">
+                    </div>
+                </div>
+
+                <div class="form-buttons">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Сохранить
+                    </button>
+                    <button type="button" onclick="hideForm()" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Отмена
+                    </button>
+                    <div id="form-status" style="margin-left: 15px; display: none;">
+                        <span class="status-loading"><i class="fas fa-spinner fa-spin"></i> Сохранение...</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Таблица участков -->
+        <div class="content-card">
+            <div class="table-header">
+                <h2><i class="fas fa-table"></i> Список участков</h2>
+                <div class="table-info">
+                    <span id="lot-count">Загрузка...</span>
+                    <button onclick="reloadPage()" class="btn btn-sm btn-info" title="Обновить">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+            
             <div id="lots-table">
-                <p><i>Загрузка данных...</i></p>
+                <p><i class="fas fa-spinner fa-spin"></i> Загрузка данных...</p>
             </div>
         </div>
     </div>
-    
+
+    <!-- Модальное окно подтверждения удаления -->
+    <div id="delete-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3><i class="fas fa-exclamation-triangle"></i> Подтверждение удаления</h3>
+            <p>Вы уверены, что хотите удалить участок "<span id="delete-lot-name"></span>"?</p>
+            <p class="text-muted">Участок будет деактивирован (мягкое удаление).</p>
+            <div class="modal-buttons">
+                <button onclick="confirmDelete()" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Удалить
+                </button>
+                <button onclick="cancelDelete()" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Отмена
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Глобальные переменные
         let allLots = [];
-        
+        let filteredLots = [];
+        let allUsers = [];
+        let deleteLotId = null;
+        let deleteLotName = '';
+
+        // ================ ОСНОВНЫЕ ФУНКЦИИ ================
+
+        // Основная функция инициализации
+        async function initializePage() {
+            showLoading();
+            try {
+                console.log('1. Загрузка пользователей...');
+                await loadAllUsers();
+                
+                console.log('2. Загрузка участков...');
+                await loadLots();
+                
+                console.log('3. Рендер таблицы...');
+                renderLotsTable();
+                
+                console.log('Инициализация завершена');
+                
+            } catch (error) {
+                showError('Ошибка инициализации: ' + error.message);
+            }
+        }
+
+        // Загрузка всех пользователей
+        async function loadAllUsers() {
+            try {
+                const response = await fetch('/api/v1/users/active');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allUsers = data.users;
+                    console.log('Пользователи загружены:', allUsers.length);
+                    populateUserSelects();
+                } else {
+                    console.warn('Пользователи не найдены');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки пользователей:', error);
+                throw error;
+            }
+        }
+
+        // Загрузка участков
         async function loadLots() {
             try {
                 const response = await fetch('/api/v1/lots');
@@ -42,73 +248,664 @@
                 
                 if (data.success) {
                     allLots = data.lots;
-                    renderLotsTable(allLots);
+                    filteredLots = [...allLots];
+                    updateLotCount();
+                    console.log('Участки загружены:', allLots.length);
+                } else {
+                    throw new Error(data.error || 'Ошибка загрузки участков');
                 }
             } catch (error) {
-                document.getElementById('lots-table').innerHTML = 
-                    '<p style="color:red;">Ошибка: ' + error.message + '</p>';
+                console.error('Ошибка загрузки участков:', error);
+                throw error;
             }
         }
-        
-        function renderLotsTable(lots) {
+
+        // Заполнить выпадающие списки пользователями
+        function populateUserSelects() {
+            const managerSelect = document.getElementById('manager_telegram_id');
+            const deputySelect = document.getElementById('deputy_manager_telegram_id');
+            
+            if (!managerSelect || !deputySelect) return;
+            
+            // Очищаем
+            managerSelect.innerHTML = '<option value="">-- Выберите сотрудника --</option>';
+            deputySelect.innerHTML = '<option value="">-- Нет заместителя --</option>';
+            
+            // Сортируем по имени
+            const sortedUsers = [...allUsers].sort((a, b) => {
+                const nameA = (a.display_name || a.telegram_id || '').toLowerCase();
+                const nameB = (b.display_name || b.telegram_id || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
+            
+            // Добавляем опции
+            sortedUsers.forEach(user => {
+                const roleText = getUserRoleText(user.role);
+                const displayText = `${user.display_name || user.username || user.telegram_id} (${roleText})`;
+                const option = `<option value="${user.telegram_id}">${displayText}</option>`;
+                
+                managerSelect.innerHTML += option;
+                deputySelect.innerHTML += option;
+            });
+        }
+
+        // Функция для получения информации о пользователе
+        function getUserInfo(telegramId) {
+            if (!allUsers || allUsers.length === 0) {
+                return `<span class="user-loading">${telegramId} (загрузка...)</span>`;
+            }
+            
+            const user = allUsers.find(u => u.telegram_id === telegramId);
+            if (!user) {
+                return `<span class="user-missing">${telegramId}</span>`;
+            }
+            
+            const roleText = getUserRoleText(user.role);
+            return `
+                <div class="user-display">
+                    <span class="user-name">${user.display_name || user.username || user.telegram_id}</span>
+                    <span class="user-role ${user.role}">${roleText}</span>
+                </div>
+            `;
+        }
+
+        // Получить текст роли
+        function getUserRoleText(role) {
+            const roleMap = {
+                'worker': 'Рабочий',
+                'master': 'Мастер',
+                'otk_inspector': 'Контролёр',
+                'admin': 'Админ',
+                'super_admin': 'Суперадмин',
+                'quality_director': 'Директор кач.'
+            };
+            return roleMap[role] || role;
+        }
+
+        // Рендер таблицы
+        function renderLotsTable() {
             const tableDiv = document.getElementById('lots-table');
+            
+            if (filteredLots.length === 0) {
+                tableDiv.innerHTML = '<p class="no-data">Нет данных для отображения</p>';
+                return;
+            }
             
             let html = '<table class="data-table">';
             html += '<thead><tr>';
-            html += '<th>ID</th><th>Название</th><th>Менеджер</th><th>Приоритет</th><th>Расстояние до ОТК</th><th>Действия</th>';
+            html += '<th>ID</th>';
+            html += '<th>Название</th>';
+            html += '<th>Мастер / Зам.</th>';
+            html += '<th>Приоритет</th>';
+            html += '<th>Расстояние</th>';
+            html += '<th>Статус</th>';
+            html += '<th>Действия</th>';
             html += '</tr></thead><tbody>';
             
-            lots.forEach(lot => {
+            filteredLots.forEach(lot => {
+                const priorityClass = getPriorityClass(lot.priority_level);
+                const statusBadge = getStatusBadge(lot);
+                
                 html += '<tr>';
-                html += '<td>' + lot.id + '</td>';
-                html += '<td><strong>' + lot.name + '</strong><br><small>' + (lot.description || '') + '</small></td>';
-                html += '<td>' + lot.manager_telegram_id + '</td>';
-                html += '<td>' + lot.priority_level + '</td>';
-                html += '<td>' + (lot.distance_to_otk_meters || '-') + ' м</td>';
-                html += '<td>';
-                html += '<button class="btn-action btn-edit" onclick="editLot(' + lot.id + ')">';
-                html += '<i class="fas fa-edit"></i> Ред.';
-                html += '</button>';
-                html += '<button class="btn-action btn-delete" onclick="deleteLot(' + lot.id + ', \'' + lot.name + '\')">';
-                html += '<i class="fas fa-trash"></i> Уд.';
-                html += '</button>';
-                html += '</td>';
+                html += `<td>${lot.id}</td>`;
+                html += `<td><strong>${lot.name}</strong><br><small>${lot.description || ''}</small></td>`;
+                html += `<td class="user-cell">`;
+                html += `<div class="user-primary">${getUserInfo(lot.manager_telegram_id)}</div>`;
+                if (lot.deputy_manager_telegram_id) {
+                    html += `<div class="user-deputy"><small>зам: </small>${getUserInfo(lot.deputy_manager_telegram_id)}</div>`;
+                } else {
+                    html += `<div class="text-muted"><small>нет заместителя</small></div>`;
+                }
+                html += `</td>`;
+                html += `<td><span class="priority-badge ${priorityClass}">${lot.priority_level}</span></td>`;
+                html += `<td>${lot.distance_to_otk_meters ? lot.distance_to_otk_meters + ' м' : '-'}</td>`;
+                html += `<td>${statusBadge}</td>`;
+                html += `<td><div class="action-buttons">`;
+                html += `<button class="btn-action btn-edit" onclick="editLot(${lot.id})" title="Редактировать">`;
+                html += `<i class="fas fa-edit"></i>`;
+                html += `</button>`;
+                html += `<button class="btn-action btn-delete" onclick="showDeleteModal(${lot.id}, '${lot.name.replace(/'/g, "\\'")}')" title="Удалить">`;
+                html += `<i class="fas fa-trash"></i>`;
+                html += `</button>`;
+                html += `</div></td>`;
                 html += '</tr>';
             });
             
             html += '</tbody></table>';
             tableDiv.innerHTML = html;
         }
-        
-        function showCreateModal() {
-            alert('Форма создания участка в разработке');
+
+        // ================ ФОРМА СОЗДАНИЯ/РЕДАКТИРОВАНИЯ ================
+
+        // Показать форму создания
+        function showCreateForm() {
+            document.getElementById('form-title').innerHTML = '<i class="fas fa-plus"></i> Создание участка';
+            document.getElementById('lot-form').reset();
+            document.getElementById('lot-id').value = '';
+            document.getElementById('is_active').value = 'true';
+            document.getElementById('requires_urgent_attention').value = 'false';
+            document.getElementById('priority_level').value = '3';
+            document.getElementById('working_hours_start').value = '08:00';
+            document.getElementById('working_hours_end').value = '20:00';
+            
+            // Сбросить выпадающие списки
+            document.getElementById('manager_telegram_id').value = '';
+            document.getElementById('deputy_manager_telegram_id').value = '';
+            
+            document.getElementById('lot-form-container').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        
-        function editLot(id) {
-            alert('Редактирование участка #' + id + ' в разработке');
-        }
-        
-        function deleteLot(id, name) {
-            if (confirm('Удалить участок "' + name + '"?')) {
-                alert('Удаление участка в разработке');
+
+        // Редактировать участок
+        async function editLot(id) {
+            showFormStatus('<i class="fas fa-spinner fa-spin"></i> Загрузка...');
+            
+            try {
+                // Убедимся, что пользователи загружены
+                if (allUsers.length === 0) {
+                    await loadAllUsers();
+                }
+                
+                const response = await fetch(`/api/v1/lots/${id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const lot = data.lot;
+                    document.getElementById('form-title').innerHTML = '<i class="fas fa-edit"></i> Редактирование участка';
+                    document.getElementById('lot-id').value = lot.id;
+                    document.getElementById('name').value = lot.name || '';
+                    document.getElementById('description').value = lot.description || '';
+                    document.getElementById('priority_level').value = lot.priority_level || 3;
+                    document.getElementById('distance_to_otk_meters').value = lot.distance_to_otk_meters || '';
+                    document.getElementById('working_hours_start').value = lot.working_hours_start?.substring(0, 5) || '08:00';
+                    document.getElementById('working_hours_end').value = lot.working_hours_end?.substring(0, 5) || '20:00';
+                    document.getElementById('is_active').value = lot.is_active ? 'true' : 'false';
+                    document.getElementById('requires_urgent_attention').value = lot.requires_urgent_attention ? 'true' : 'false';
+                    document.getElementById('bitrix24_id').value = lot.bitrix24_id || '';
+                    
+                    // Устанавливаем значения
+                    document.getElementById('manager_telegram_id').value = lot.manager_telegram_id || '';
+                    document.getElementById('deputy_manager_telegram_id').value = lot.deputy_manager_telegram_id || '';
+                    
+                    document.getElementById('lot-form-container').style.display = 'block';
+                    hideFormStatus();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    showError('Ошибка загрузки: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                showError('Ошибка сети: ' + error.message);
             }
         }
-        
-        document.addEventListener('DOMContentLoaded', loadLots);
+
+        // Сохранить участок
+        async function saveLot(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('lot-id').value;
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/v1/lots/${id}` : '/api/v1/lots';
+            
+            // Подготовка данных
+            const lotData = {
+                name: document.getElementById('name').value.trim(),
+                description: document.getElementById('description').value.trim() || null,
+                manager_telegram_id: document.getElementById('manager_telegram_id').value,
+                deputy_manager_telegram_id: document.getElementById('deputy_manager_telegram_id').value || null,
+                priority_level: parseInt(document.getElementById('priority_level').value),
+                distance_to_otk_meters: document.getElementById('distance_to_otk_meters').value ? parseInt(document.getElementById('distance_to_otk_meters').value) : null,
+                working_hours_start: document.getElementById('working_hours_start').value + ':00',
+                working_hours_end: document.getElementById('working_hours_end').value + ':00',
+                is_active: document.getElementById('is_active').value === 'true',
+                requires_urgent_attention: document.getElementById('requires_urgent_attention').value === 'true',
+                bitrix24_id: document.getElementById('bitrix24_id').value ? parseInt(document.getElementById('bitrix24_id').value) : null
+            };
+            
+            // Валидация
+            if (!lotData.name) {
+                showError('Название участка обязательно');
+                return;
+            }
+            if (!lotData.manager_telegram_id) {
+                showError('Основной мастер обязателен');
+                return;
+            }
+            if (lotData.priority_level < 1 || lotData.priority_level > 5) {
+                showError('Приоритет должен быть от 1 до 5');
+                return;
+            }
+            
+            showFormStatus('<i class="fas fa-spinner fa-spin"></i> Сохранение...');
+            
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(lotData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess(result.message || 'Участок успешно сохранён');
+                    hideForm();
+                    reloadPage();
+                } else {
+                    showError('Ошибка сохранения: ' + (result.error || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                showError('Ошибка сети: ' + error.message);
+            } finally {
+                hideFormStatus();
+            }
+        }
+
+        // ================ УДАЛЕНИЕ ================
+
+        // Показать модальное окно удаления
+        function showDeleteModal(id, name) {
+            deleteLotId = id;
+            deleteLotName = name;
+            document.getElementById('delete-lot-name').textContent = name;
+            document.getElementById('delete-modal').style.display = 'block';
+        }
+
+        // Подтвердить удаление
+        async function confirmDelete() {
+            if (!deleteLotId) return;
+            
+            try {
+                const response = await fetch(`/api/v1/lots/${deleteLotId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess(result.message || 'Участок удалён');
+                    cancelDelete();
+                    reloadPage();
+                } else {
+                    showError('Ошибка удаления: ' + (result.error || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                showError('Ошибка сети: ' + error.message);
+            }
+        }
+
+        // Отменить удаление
+        function cancelDelete() {
+            deleteLotId = null;
+            deleteLotName = '';
+            document.getElementById('delete-modal').style.display = 'none';
+        }
+
+        // ================ ФИЛЬТРАЦИЯ И ПОИСК ================
+
+        // Фильтрация участков
+        function filterLots() {
+            const searchText = document.getElementById('search-input').value.toLowerCase();
+            const priorityFilter = document.getElementById('filter-priority').value;
+            const statusFilter = document.getElementById('filter-status').value;
+            
+            filteredLots = allLots.filter(lot => {
+                // Поиск по названию
+                if (searchText && !lot.name.toLowerCase().includes(searchText)) {
+                    return false;
+                }
+                
+                // Фильтр по приоритету
+                if (priorityFilter && lot.priority_level != priorityFilter) {
+                    return false;
+                }
+                
+                // Фильтр по статусу
+                if (statusFilter === 'active' && !lot.is_active) return false;
+                if (statusFilter === 'inactive' && lot.is_active) return false;
+                if (statusFilter === 'urgent' && !lot.requires_urgent_attention) return false;
+                
+                return true;
+            });
+            
+            renderLotsTable();
+            updateLotCount();
+        }
+
+        // Сбросить фильтры
+        function resetFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('filter-priority').value = '';
+            document.getElementById('filter-status').value = '';
+            filteredLots = [...allLots];
+            renderLotsTable();
+            updateLotCount();
+        }
+
+        // ================ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ================
+
+        // Скрыть форму
+        function hideForm() {
+            document.getElementById('lot-form-container').style.display = 'none';
+        }
+
+        // Обновить счетчик
+        function updateLotCount() {
+            const total = allLots.length;
+            const filtered = filteredLots.length;
+            const text = filtered === total ? 
+                `Всего: ${total} участков` : 
+                `Показано: ${filtered} из ${total} участков`;
+            document.getElementById('lot-count').textContent = text;
+        }
+
+        // Получить класс приоритета
+        function getPriorityClass(priority) {
+            switch(parseInt(priority)) {
+                case 1: return 'priority-critical';
+                case 2: return 'priority-high';
+                case 3: return 'priority-medium';
+                case 4: return 'priority-low';
+                case 5: return 'priority-minimal';
+                default: return '';
+            }
+        }
+
+        // Получить бейдж статуса
+        function getStatusBadge(lot) {
+            if (!lot.is_active) {
+                return '<span class="status-badge status-inactive">❌ Неактивен</span>';
+            }
+            if (lot.requires_urgent_attention) {
+                return '<span class="status-badge status-urgent">⚠️ Срочно</span>';
+            }
+            return '<span class="status-badge status-active">✅ Активен</span>';
+        }
+
+        // Показать загрузку
+        function showLoading() {
+            const tableDiv = document.getElementById('lots-table');
+            if (tableDiv) {
+                tableDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Загрузка данных...</p>';
+            }
+        }
+
+        // Показать ошибку
+        function showError(message) {
+            alert('Ошибка: ' + message);
+            console.error('TMA-ERP Error:', message);
+        }
+
+        // Показать успех
+        function showSuccess(message) {
+            alert(message);
+        }
+
+        // Показать статус формы
+        function showFormStatus(message) {
+            const statusEl = document.getElementById('form-status');
+            statusEl.innerHTML = `<span class="status-text">${message}</span>`;
+            statusEl.style.display = 'block';
+        }
+
+        // Скрыть статус формы
+        function hideFormStatus() {
+            document.getElementById('form-status').style.display = 'none';
+        }
+
+        // Полная перезагрузка страницы
+        function reloadPage() {
+            console.log('Полная перезагрузка...');
+            allUsers = [];
+            allLots = [];
+            filteredLots = [];
+            initializePage();
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM загружен, инициализация...');
+            initializePage();
+            
+            // Закрытие модального окна при клике вне его
+            document.getElementById('delete-modal').addEventListener('click', function(e) {
+                if (e.target === this) cancelDelete();
+            });
+        });
     </script>
-    
+
     <style>
+        /* Стили для поиска и фильтров */
+        .search-filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        
+        .search-filters .form-group {
+            flex: 1;
+            min-width: 150px;
+            margin-bottom: 0;
+        }
+        
+        /* Шапка таблицы */
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .table-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        /* Бейджи приоритета */
+        .priority-badge {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            border-radius: 50%;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .priority-critical { background: #dc3545; }
+        .priority-high { background: #fd7e14; }
+        .priority-medium { background: #ffc107; }
+        .priority-low { background: #20c997; }
+        .priority-minimal { background: #6c757d; }
+        
+        /* Бейджи статуса */
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-active { background: #d4edda; color: #155724; }
+        .status-inactive { background: #f8d7da; color: #721c24; }
+        .status-urgent { background: #fff3cd; color: #856404; }
+        
+        /* Стили для отображения пользователей */
+        .user-cell {
+            min-width: 180px;
+        }
+
+        .user-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-role {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            background: #e9ecef;
+            color: #495057;
+            white-space: nowrap;
+        }
+
+        /* Цвета ролей */
+        .user-role.master { background: #c3e6cb; color: #155724; }
+        .user-role.otk_inspector { background: #b8daff; color: #004085; }
+        .user-role.admin { background: #d1ecf1; color: #0c5460; }
+        .user-role.super_admin { background: #f5c6cb; color: #721c24; }
+        .user-role.quality_director { background: #fff3cd; color: #856404; }
+        .user-role.worker { background: #e2e3e5; color: #383d41; }
+
+        .user-primary {
+            margin-bottom: 5px;
+        }
+
+        .user-deputy {
+            padding-left: 10px;
+            border-left: 2px solid #dee2e6;
+            font-size: 13px;
+        }
+
+        .user-deputy small {
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        .user-missing {
+            color: #dc3545;
+            font-style: italic;
+            font-size: 13px;
+        }
+
+        .user-loading {
+            color: #6c757d;
+            font-style: italic;
+            font-size: 13px;
+        }
+        
+        /* Кнопки действий */
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
         .btn-action {
-            padding: 5px 10px;
+            width: 32px;
+            height: 32px;
             border-radius: 6px;
             border: none;
             cursor: pointer;
-            font-size: 12px;
-            margin: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
         }
         
         .btn-edit { background: #228be6; color: white; }
         .btn-delete { background: #fa5252; color: white; }
+        
+        /* Модальное окно */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+        
+        /* Форма в строку */
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        /* Сообщения */
+        .error-message {
+            color: #dc3545;
+            padding: 10px;
+            background: #f8d7da;
+            border-radius: 6px;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .text-muted {
+            color: #6c757d;
+            font-size: 12px;
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .search-filters {
+                flex-direction: column;
+            }
+            
+            .search-filters .form-group {
+                min-width: 100%;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .table-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
     </style>
 </body>
 </html>

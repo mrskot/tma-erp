@@ -11,6 +11,9 @@ router.get('/', UserController.getAll);
 // GET /api/v1/users/profile - профиль
 router.get('/profile', UserController.getProfile);
 
+// GET /api/v1/users/active - все активные пользователи (для выпадающих списков)
+router.get('/active', UserController.getAllActiveUsers);
+
 // PUT /api/v1/users/:telegram_id - обновить пользователя
 router.put('/:telegram_id', UserController.update);
 
