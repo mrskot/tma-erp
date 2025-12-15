@@ -1,4 +1,3 @@
-// src/models/Product.js
 const knex = require('knex');
 const knexfile = require('../../knexfile');
 
@@ -6,47 +5,61 @@ const environment = process.env.NODE_ENV || 'development';
 const db = knex(knexfile[environment]);
 
 class Product {
-  // Получить все активные изделия
+  // Константы для отображения типов
+  static TYPES = {
+    'semi_finished': 'Полуфабрикат',
+    'assembly': 'Узел',
+    'finished_product': 'Готовая продукция',
+    'detail': 'Деталь'
+  };
+
+  // Константы для отображения единиц измерения
+  static UNITS = {
+    'pcs': 'шт.',
+    'set': 'компл.'
+  };
+
+  // Получить все активные изделия с человекочитаемыми названиями
   static async findAll() {
-    return db('products')
+    const products = await db('products')
       .where({ is_active: true })
       .select('*')
       .orderBy('name', 'asc');
+    
+    // Добавляем отображаемые названия
+    return products.map(product => ({
+      ...product,
+      type_display: this.TYPES[product.type] || product.type,
+      unit_display: this.UNITS[product.unit] || product.unit
+    }));
   }
 
   // Найти изделие по ID
   static async findById(id) {
-    return db('products').where({ id, is_active: true }).first();
-  }
-
-  // Найти изделие по номеру чертежа
-  static async findByDrawingNumber(drawingNumber) {
-    return db('products')
-      .where({ 
-        drawing_number: drawingNumber.toUpperCase(),
-        is_active: true 
-      })
-      .first();
-  }
-
-  // Найти изделие по серийному номеру
-  static async findBySerialNumber(serialNumber) {
-    return db('products')
-      .where({ 
-        serial_number: serialNumber,
-        is_active: true 
-      })
-      .first();
+    const product = await db('products').where({ id, is_active: true }).first();
+    if (!product) return null;
+    
+    return {
+      ...product,
+      type_display: this.TYPES[product.type] || product.type,
+      unit_display: this.UNITS[product.unit] || product.unit
+    };
   }
 
   // Поиск изделий по названию (частичное совпадение)
   static async searchByName(name) {
-    return db('products')
+    const products = await db('products')
       .where('is_active', true)
       .andWhere('name', 'ilike', `%${name}%`)
-      .select('id', 'name', 'drawing_number', 'type', 'unit')
+      .select('id', 'name', 'type', 'unit', 'lot_id', 'inspection_time_minutes')
       .orderBy('name', 'asc')
       .limit(20);
+    
+    return products.map(product => ({
+      ...product,
+      type_display: this.TYPES[product.type] || product.type,
+      unit_display: this.UNITS[product.unit] || product.unit
+    }));
   }
 
   // Создать изделие
@@ -54,26 +67,24 @@ class Product {
     const [product] = await db('products')
       .insert({
         name: productData.name,
-        drawing_number: productData.drawing_number.toUpperCase(),
-        serial_number: productData.serial_number || null,
+        lot_id: productData.lot_id || null,
+        default_otk_inspector_telegram_id: productData.default_otk_inspector_telegram_id || null,
         type: productData.type || 'finished_product',
         unit: productData.unit || 'pcs',
-        next_stage_product_id: productData.next_stage_product_id || null,
-        previous_stage_product_id: productData.previous_stage_product_id || null,
-        technical_requirements: productData.technical_requirements || null,
-        description: productData.description || null
+        inspection_time_minutes: productData.inspection_time_minutes || 30,
+        checklist_text: productData.checklist_text || null
       })
       .returning('*');
     
-    return product;
+    return {
+      ...product,
+      type_display: this.TYPES[product.type] || product.type,
+      unit_display: this.UNITS[product.unit] || product.unit
+    };
   }
 
   // Обновить изделие
   static async update(id, updates) {
-    if (updates.drawing_number) {
-      updates.drawing_number = updates.drawing_number.toUpperCase();
-    }
-    
     updates.updated_at = new Date();
     
     await db('products')
@@ -93,29 +104,72 @@ class Product {
       });
   }
 
-  // Получить изделия по участку (через историю заявок)
+  // Получить изделия по участку
   static async getByLot(lotId) {
-    return db('products as p')
-      .join('applications as a', 'a.product_id', 'p.id')
-      .where('a.lot_id', lotId)
+    const products = await db('products as p')
+      .where('p.lot_id', lotId)
       .andWhere('p.is_active', true)
-      .distinct('p.*')
+      .select('p.*')
       .orderBy('p.name', 'asc');
+    
+    return products.map(product => ({
+      ...product,
+      type_display: this.TYPES[product.type] || product.type,
+      unit_display: this.UNITS[product.unit] || product.unit
+    }));
   }
 
-  // Получить статистику по изделию
+  // Найти изделия по контролёру ОТК
+  static async findByInspector(telegramId) {
+    const products = await db('products')
+      .where('default_otk_inspector_telegram_id', telegramId)
+      .andWhere('is_active', true)
+      .select('*')
+      .orderBy('name', 'asc');
+    
+    return products.map(product => ({
+      ...product,
+      type_display: this.TYPES[product.type] || product.type,
+      unit_display: this.UNITS[product.unit] || product.unit
+    }));
+  }
+
+  // Получить все типы для dropdown
+  static getTypesForSelect() {
+    return Object.entries(this.TYPES).map(([value, label]) => ({ value, label }));
+  }
+
+  // Получить все единицы для dropdown
+  static getUnitsForSelect() {
+    return Object.entries(this.UNITS).map(([value, label]) => ({ value, label }));
+  }
+
+  // Получить контролёров ОТК (из users) для dropdown
+  static async getAvailableInspectors() {
+    const inspectors = await db('users')
+      .where('role', 'otk_inspector')
+      .andWhere('is_active', true)
+      .select('telegram_id', 'username', 'first_name', 'last_name')
+      .orderBy('first_name', 'asc');
+    
+    return inspectors.map(inspector => ({
+      value: inspector.telegram_id,
+      label: `${inspector.first_name || ''} ${inspector.last_name || ''}`.trim() || inspector.username || inspector.telegram_id
+    }));
+  }
+
+  // Статистика по изделию (заглушка - расширим позже)
   static async getStats(productId) {
     const product = await this.findById(productId);
     if (!product) return null;
 
-    // Статистика заявок (позже расширим)
     const stats = {
       product: {
         id: product.id,
         name: product.name,
-        drawing_number: product.drawing_number,
-        type: product.type,
-        unit: product.unit
+        type: product.type_display,
+        unit: product.unit_display,
+        inspection_time: product.inspection_time_minutes
       },
       applications: {
         total: 0,
@@ -128,56 +182,17 @@ class Product {
     return stats;
   }
 
-  // Получить маршрут изделия (цепочка производства)
+  // Получить маршрут изделия (заглушка - убрали цепочку производства)
   static async getProductionRoute(productId) {
-    const route = [];
-    let currentProduct = await this.findById(productId);
+    const product = await this.findById(productId);
+    if (!product) return null;
     
-    // Идём назад по цепочке (предыдущие этапы)
-    while (currentProduct && currentProduct.previous_stage_product_id) {
-      const prevProduct = await this.findById(currentProduct.previous_stage_product_id);
-      if (prevProduct) {
-        route.unshift({
-          id: prevProduct.id,
-          name: prevProduct.name,
-          drawing_number: prevProduct.drawing_number,
-          type: prevProduct.type,
-          stage: 'previous'
-        });
-        currentProduct = prevProduct;
-      } else {
-        break;
-      }
-    }
-    
-    // Текущее изделие
-    currentProduct = await this.findById(productId);
-    route.push({
-      id: currentProduct.id,
-      name: currentProduct.name,
-      drawing_number: currentProduct.drawing_number,
-      type: currentProduct.type,
+    return [{
+      id: product.id,
+      name: product.name,
+      type: product.type_display,
       stage: 'current'
-    });
-    
-    // Идём вперёд по цепочке (следующие этапы)
-    while (currentProduct && currentProduct.next_stage_product_id) {
-      const nextProduct = await this.findById(currentProduct.next_stage_product_id);
-      if (nextProduct) {
-        route.push({
-          id: nextProduct.id,
-          name: nextProduct.name,
-          drawing_number: nextProduct.drawing_number,
-          type: nextProduct.type,
-          stage: 'next'
-        });
-        currentProduct = nextProduct;
-      } else {
-        break;
-      }
-    }
-    
-    return route;
+    }];
   }
 }
 

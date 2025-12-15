@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Изделия - TMA-ERP</title>
+    <title>Типы изделий - TMA-ERP</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -11,27 +11,29 @@
     <div class="container">
         <nav class="navbar">
             <div class="nav-brand">
-                <h1><i class="fas fa-cubes"></i> Управление изделиями</h1>
-                <p>Номенклатура, чертежи, маршруты</p>
+                <h1><i class="fas fa-cubes"></i> Типы изделий</h1>
+                <p>Номенклатура изделий, чек-листы, время приёмки</p>
             </div>
             <div class="nav-links">
                 <a href="/admin" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Назад в админку
                 </a>
-                <button onclick="createProduct()" class="btn btn-success">
-                    <i class="fas fa-plus"></i> Добавить изделие
+                <button onclick="showCreateModal()" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Добавить тип изделия
                 </button>
             </div>
         </nav>
         
         <div class="content-card">
-            <h2><i class="fas fa-info-circle"></i> Информация</h2>
-            <p>Это страница управления номенклатурой изделий.</p>
-            
+            <h2><i class="fas fa-info-circle"></i> Статистика</h2>
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="total-products">0</div>
-                    <div class="stat-label">Всего изделий</div>
+                    <div class="stat-label">Всего типов изделий</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avg-inspection-time">0</div>
+                    <div class="stat-label">Среднее время приёмки (мин)</div>
                 </div>
             </div>
             
@@ -40,50 +42,202 @@
                 <a href="/api/v1/products" target="_blank" class="api-link">
                     GET /api/v1/products
                 </a>
+                <a href="/api/v1/products/reference/data" target="_blank" class="api-link">
+                    GET /api/v1/products/reference/data
+                </a>
             </div>
             
-            <h2><i class="fas fa-table"></i> Список изделий</h2>
+            <div class="search-filter">
+                <div class="form-group">
+                    <label for="search-input"><i class="fas fa-search"></i> Поиск</label>
+                    <input type="text" id="search-input" class="form-control" placeholder="Название изделия..." onkeyup="filterProducts()">
+                </div>
+                <div class="form-group">
+                    <label for="type-filter"><i class="fas fa-filter"></i> Тип</label>
+                    <select id="type-filter" class="form-control" onchange="filterProducts()">
+                        <option value="">Все типы</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="lot-filter"><i class="fas fa-industry"></i> Участок</label>
+                    <select id="lot-filter" class="form-control" onchange="filterProducts()">
+                        <option value="">Все участки</option>
+                    </select>
+                </div>
+            </div>
+            
+            <h2><i class="fas fa-table"></i> Список типов изделий</h2>
             <div id="products-table">
                 <p><i>Загрузка данных...</i></p>
             </div>
         </div>
     </div>
     
+    <!-- Модальное окно создания -->
+    <div id="createModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeCreateModal()">&times;</button>
+            <h3><i class="fas fa-plus-circle"></i> Добавить тип изделия</h3>
+            <form id="createProductForm" onsubmit="createProduct(event)">
+                <div class="form-group">
+                    <label for="product-name">Название *</label>
+                    <input type="text" id="product-name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="product-lot">Участок производства</label>
+                    <select id="product-lot" class="form-control">
+                        <option value="">Не указан</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="product-type">Тип изделия</label>
+                    <select id="product-type" class="form-control" required>
+                        <option value="finished_product">Готовая продукция</option>
+                        <option value="semi_finished">Полуфабрикат</option>
+                        <option value="assembly">Узел</option>
+                        <option value="detail">Деталь</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="product-unit">Единица измерения</label>
+                    <select id="product-unit" class="form-control" required>
+                        <option value="pcs">шт.</option>
+                        <option value="set">компл.</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="default-inspector">Контролёр ОТК по умолчанию</label>
+                    <select id="default-inspector" class="form-control">
+                        <option value="">Не назначен</option>
+                        <!-- Опции будут заполнены через JavaScript -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="inspection-time">Время на приёмку (минуты)</label>
+                    <input type="number" id="inspection-time" class="form-control" value="30" min="1" max="480">
+                </div>
+                
+                <div class="form-group">
+                    <label for="checklist-text">Чек-лист приёмки (текст)</label>
+                    <textarea id="checklist-text" class="form-control" rows="4" 
+                              placeholder="1. Проверить...&#10;2. Измерить...&#10;3. Убедиться..."></textarea>
+                </div>
+                
+                <div class="form-group" style="text-align: right; margin-top: 30px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Отмена</button>
+                    <button type="submit" class="btn btn-success">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Модальное окно редактирования -->
+    <div id="editModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeEditModal()">&times;</button>
+            <h3><i class="fas fa-edit"></i> Редактировать тип изделия</h3>
+            <form id="editProductForm" onsubmit="updateProduct(event)">
+                <input type="hidden" id="edit-product-id">
+                
+                <div class="form-group">
+                    <label for="edit-product-name">Название *</label>
+                    <input type="text" id="edit-product-name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-product-lot">Участок производства</label>
+                    <select id="edit-product-lot" class="form-control">
+                        <option value="">Не указан</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-product-type">Тип изделия</label>
+                    <select id="edit-product-type" class="form-control" required>
+                        <option value="finished_product">Готовая продукция</option>
+                        <option value="semi_finished">Полуфабрикат</option>
+                        <option value="assembly">Узел</option>
+                        <option value="detail">Деталь</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-product-unit">Единица измерения</label>
+                    <select id="edit-product-unit" class="form-control" required>
+                        <option value="pcs">шт.</option>
+                        <option value="set">компл.</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-default-inspector">Контролёр ОТК по умолчанию</label>
+                    <select id="edit-default-inspector" class="form-control">
+                        <option value="">Не назначен</option>
+                        <!-- Опции будут заполнены через JavaScript -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-inspection-time">Время на приёмку (минуты)</label>
+                    <input type="number" id="edit-inspection-time" class="form-control" min="1" max="480">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-checklist-text">Чек-лист приёмки (текст)</label>
+                    <textarea id="edit-checklist-text" class="form-control" rows="4"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-is-active">Статус</label>
+                    <select id="edit-is-active" class="form-control">
+                        <option value="true">Активен</option>
+                        <option value="false">Неактивен</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="text-align: right; margin-top: 30px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Обновить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script>
-        function createProduct() {
-            alert('Форма создания изделия в разработке');
+        let allProducts = [];
+        let allLots = [];
+        let currentEditId = null;
+        let availableInspectors = [];
+        
+        // Загрузка данных при старте
+        async function loadData() {
+            try {
+                await Promise.all([
+                    loadProducts(),
+                    loadLots(),
+                    loadReferenceData()
+                ]);
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                showError('Ошибка загрузки данных: ' + error.message);
+            }
         }
         
+        // Загрузить все изделия
         async function loadProducts() {
             try {
                 const response = await fetch('/api/v1/products');
                 const data = await response.json();
                 
                 if (data.success) {
-                    document.getElementById('total-products').textContent = data.count;
-                    
-                    const tableDiv = document.getElementById('products-table');
-                    if (data.products.length > 0) {
-                        let html = '<table class="data-table">';
-                        html += '<thead><tr>';
-                        html += '<th>ID</th><th>Название</th><th>Чертеж</th><th>Тип</th><th>Ед.изм.</th>';
-                        html += '</tr></thead><tbody>';
-                        
-                        data.products.forEach(product => {
-                            html += '<tr>';
-                            html += '<td>' + product.id + '</td>';
-                            html += '<td>' + product.name + '</td>';
-                            html += '<td>' + product.drawing_number + '</td>';
-                            html += '<td>' + product.type + '</td>';
-                            html += '<td>' + product.unit + '</td>';
-                            html += '</tr>';
-                        });
-                        
-                        html += '</tbody></table>';
-                        tableDiv.innerHTML = html;
-                    } else {
-                        tableDiv.innerHTML = '<p>Нет изделий в системе</p>';
-                    }
+                    allProducts = data.products;
+                    renderProductsTable(allProducts);
+                    updateStats(allProducts);
                 }
             } catch (error) {
                 console.error('Ошибка загрузки изделий:', error);
@@ -92,7 +246,428 @@
             }
         }
         
-        document.addEventListener('DOMContentLoaded', loadProducts);
+        // Загрузить участки для фильтра
+        async function loadLots() {
+            try {
+                const response = await fetch('/api/v1/lots');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allLots = data.lots;
+                    populateLotFilters();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки участков:', error);
+            }
+        }
+        
+        // Загрузить справочные данные (типы, единицы, контролёры)
+        async function loadReferenceData() {
+            try {
+                console.log('Загрузка справочных данных...');
+                const response = await fetch('/api/v1/products/reference/data');
+                const data = await response.json();
+                
+                console.log('Справочные данные получены:', data);
+                
+                if (data.success) {
+                    if (data.types) {
+                        populateTypeFilter(data.types);
+                    }
+                    if (data.inspectors) {
+                        console.log('Контролёры загружены:', data.inspectors);
+                        availableInspectors = data.inspectors;
+                    } else {
+                        console.warn('Нет данных контролёров в ответе');
+                    }
+                } else {
+                    console.error('Ошибка в ответе API:', data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки справочных данных:', error);
+            }
+        }
+        
+        // Заполнить фильтр участков
+        function populateLotFilters() {
+            const lotFilter = document.getElementById('lot-filter');
+            const createLotSelect = document.getElementById('product-lot');
+            const editLotSelect = document.getElementById('edit-product-lot');
+            
+            // Очищаем кроме первого option
+            while (lotFilter.children.length > 1) lotFilter.removeChild(lotFilter.lastChild);
+            while (createLotSelect.children.length > 1) createLotSelect.removeChild(createLotSelect.lastChild);
+            while (editLotSelect.children.length > 1) editLotSelect.removeChild(editLotSelect.lastChild);
+            
+            // Добавляем участки
+            allLots.forEach(lot => {
+                if (lot.is_active) {
+                    const option = new Option(lot.name, lot.id);
+                    const option2 = new Option(lot.name, lot.id);
+                    const option3 = new Option(lot.name, lot.id);
+                    
+                    lotFilter.appendChild(option);
+                    createLotSelect.appendChild(option2);
+                    editLotSelect.appendChild(option3);
+                }
+            });
+        }
+        
+        // Заполнить фильтр типов
+        function populateTypeFilter(types) {
+            const typeFilter = document.getElementById('type-filter');
+            
+            // Очищаем кроме первого option
+            while (typeFilter.children.length > 1) typeFilter.removeChild(typeFilter.lastChild);
+            
+            types.forEach(type => {
+                const option = new Option(type.label, type.value);
+                typeFilter.appendChild(option);
+            });
+        }
+        
+        // Заполнить select контролёров в форме создания
+        function populateCreateInspectors() {
+            const createInspectorSelect = document.getElementById('default-inspector');
+            if (!createInspectorSelect) {
+                console.error('Элемент default-inspector не найден');
+                return;
+            }
+            
+            // Очищаем кроме первого option
+            while (createInspectorSelect.children.length > 1) {
+                createInspectorSelect.removeChild(createInspectorSelect.lastChild);
+            }
+            
+            // Добавляем контролёров
+            availableInspectors.forEach(inspector => {
+                const option = new Option(inspector.label, inspector.value);
+                createInspectorSelect.appendChild(option);
+            });
+            
+            console.log('Контролёры добавлены в форму создания');
+        }
+        
+        // Заполнить select контролёров в форме редактирования
+        function populateEditInspectors(selectedInspectorId) {
+            const editInspectorSelect = document.getElementById('edit-default-inspector');
+            if (!editInspectorSelect) {
+                console.error('Элемент edit-default-inspector не найден');
+                return;
+            }
+            
+            // Очищаем кроме первого option
+            while (editInspectorSelect.children.length > 1) {
+                editInspectorSelect.removeChild(editInspectorSelect.lastChild);
+            }
+            
+            // Добавляем контролёров
+            availableInspectors.forEach(inspector => {
+                const option = new Option(inspector.label, inspector.value);
+                editInspectorSelect.appendChild(option);
+            });
+            
+            // Устанавливаем выбранное значение
+            if (selectedInspectorId) {
+                editInspectorSelect.value = selectedInspectorId;
+            }
+            
+            console.log('Контролёры добавлены в форму редактирования');
+        }
+        
+        // Обновить статистику
+        function updateStats(products) {
+            const totalProducts = products.length;
+            const avgInspectionTime = products.length > 0 
+                ? Math.round(products.reduce((sum, p) => sum + (p.inspection_time_minutes || 0), 0) / products.length)
+                : 0;
+            
+            document.getElementById('total-products').textContent = totalProducts;
+            document.getElementById('avg-inspection-time').textContent = avgInspectionTime;
+        }
+        
+        // Отобразить таблицу изделий
+        function renderProductsTable(products) {
+            const tableDiv = document.getElementById('products-table');
+            
+            if (products.length === 0) {
+                tableDiv.innerHTML = '<p>Нет типов изделий в системе</p>';
+                return;
+            }
+            
+            let html = '<table class="data-table">';
+            html += '<thead><tr>';
+            html += '<th>ID</th>';
+            html += '<th>Название</th>';
+            html += '<th>Тип</th>';
+            html += '<th>Ед.изм.</th>';
+            html += '<th>Участок</th>';
+            html += '<th>Контролёр ОТК</th>';
+            html += '<th>Время приёмки</th>';
+            html += '<th>Действия</th>';
+            html += '</tr></thead><tbody>';
+            
+            products.forEach(product => {
+                html += '<tr>';
+                html += '<td>' + product.id + '</td>';
+                html += '<td><strong>' + product.name + '</strong>';
+                if (!product.is_active) {
+                    html += ' <span class="status-rejected">(неактивен)</span>';
+                }
+                html += '</td>';
+                html += '<td>' + product.type_display + '</td>';
+                html += '<td>' + product.unit_display + '</td>';
+                html += '<td>' + (product.lot_id ? getLotName(product.lot_id) : '-') + '</td>';
+                html += '<td>' + (product.default_otk_inspector_telegram_id ? getInspectorName(product.default_otk_inspector_telegram_id) : '-') + '</td>';
+                html += '<td>' + (product.inspection_time_minutes || 0) + ' мин</td>';
+                html += '<td>';
+                html += '<button class="btn-action btn-edit" onclick="openEditModal(' + product.id + ')">';
+                html += '<i class="fas fa-edit"></i> Ред.';
+                html += '</button>';
+                html += '<button class="btn-action btn-delete" onclick="deleteProduct(' + product.id + ', \'' + product.name + '\')">';
+                html += '<i class="fas fa-trash"></i> Уд.';
+                html += '</button>';
+                html += '</td>';
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            tableDiv.innerHTML = html;
+        }
+        
+        // Фильтрация изделий
+        function filterProducts() {
+            const searchText = document.getElementById('search-input').value.toLowerCase();
+            const typeFilter = document.getElementById('type-filter').value;
+            const lotFilter = document.getElementById('lot-filter').value;
+            
+            const filtered = allProducts.filter(product => {
+                // Поиск по названию
+                if (searchText && !product.name.toLowerCase().includes(searchText)) {
+                    return false;
+                }
+                
+                // Фильтр по типу
+                if (typeFilter && product.type !== typeFilter) {
+                    return false;
+                }
+                
+                // Фильтр по участку
+                if (lotFilter && product.lot_id != lotFilter) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            renderProductsTable(filtered);
+        }
+        
+        // Получить название участка по ID
+        function getLotName(lotId) {
+            const lot = allLots.find(l => l.id == lotId);
+            return lot ? lot.name : 'Неизвестный участок';
+        }
+        
+        // Получить имя контролёра по Telegram ID
+        function getInspectorName(telegramId) {
+            const inspector = availableInspectors.find(i => i.value === telegramId);
+            return inspector ? inspector.label : telegramId;
+        }
+        
+        // ========== МОДАЛЬНЫЕ ОКНА ==========
+        
+        function showCreateModal() {
+            document.getElementById('createModal').style.display = 'block';
+            populateCreateInspectors(); // Заполняем контролёров
+        }
+        
+        function closeCreateModal() {
+            document.getElementById('createModal').style.display = 'none';
+            document.getElementById('createProductForm').reset();
+        }
+        
+        async function openEditModal(productId) {
+            try {
+                const response = await fetch(`/api/v1/products/${productId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const product = data.product;
+                    currentEditId = productId;
+                    
+                    // Заполняем форму
+                    document.getElementById('edit-product-id').value = product.id;
+                    document.getElementById('edit-product-name').value = product.name;
+                    document.getElementById('edit-product-lot').value = product.lot_id || '';
+                    document.getElementById('edit-product-type').value = product.type;
+                    document.getElementById('edit-product-unit').value = product.unit;
+                    document.getElementById('edit-inspection-time').value = product.inspection_time_minutes || 30;
+                    document.getElementById('edit-checklist-text').value = product.checklist_text || '';
+                    document.getElementById('edit-is-active').value = product.is_active.toString();
+                    
+                    // Заполняем контролёров и устанавливаем выбранного
+                    populateEditInspectors(product.default_otk_inspector_telegram_id);
+                    
+                    document.getElementById('editModal').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки изделия:', error);
+                showError('Ошибка загрузки данных для редактирования');
+            }
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('editProductForm').reset();
+            currentEditId = null;
+        }
+        
+        // ========== CRUD ОПЕРАЦИИ ==========
+        
+        async function createProduct(event) {
+            event.preventDefault();
+            
+            const productData = {
+                name: document.getElementById('product-name').value,
+                lot_id: document.getElementById('product-lot').value || null,
+                type: document.getElementById('product-type').value,
+                unit: document.getElementById('product-unit').value,
+                default_otk_inspector_telegram_id: document.getElementById('default-inspector').value || null,
+                inspection_time_minutes: parseInt(document.getElementById('inspection-time').value) || 30,
+                checklist_text: document.getElementById('checklist-text').value || null
+            };
+            
+            try {
+                const response = await fetch('/api/v1/products', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(productData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Тип изделия успешно создан');
+                    closeCreateModal();
+                    await loadProducts();
+                } else {
+                    showError(data.error || 'Ошибка при создании');
+                }
+            } catch (error) {
+                console.error('Ошибка создания:', error);
+                showError('Ошибка создания: ' + error.message);
+            }
+        }
+        
+        async function updateProduct(event) {
+            event.preventDefault();
+            
+            if (!currentEditId) return;
+            
+            const productData = {
+                name: document.getElementById('edit-product-name').value,
+                lot_id: document.getElementById('edit-product-lot').value || null,
+                type: document.getElementById('edit-product-type').value,
+                unit: document.getElementById('edit-product-unit').value,
+                default_otk_inspector_telegram_id: document.getElementById('edit-default-inspector').value || null,
+                inspection_time_minutes: parseInt(document.getElementById('edit-inspection-time').value) || 30,
+                checklist_text: document.getElementById('edit-checklist-text').value || null,
+                is_active: document.getElementById('edit-is-active').value === 'true'
+            };
+            
+            try {
+                const response = await fetch(`/api/v1/products/${currentEditId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(productData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Тип изделия успешно обновлен');
+                    closeEditModal();
+                    await loadProducts();
+                } else {
+                    showError(data.error || 'Ошибка при обновлении');
+                }
+            } catch (error) {
+                console.error('Ошибка обновления:', error);
+                showError('Ошибка обновления: ' + error.message);
+            }
+        }
+        
+        async function deleteProduct(id, name) {
+            if (!confirm(`Удалить тип изделия "${name}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/v1/products/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Тип изделия удален');
+                    await loadProducts();
+                } else {
+                    showError(data.error || 'Ошибка при удалении');
+                }
+            } catch (error) {
+                console.error('Ошибка удаления:', error);
+                showError('Ошибка удаления: ' + error.message);
+            }
+        }
+        
+        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+        
+        function showSuccess(message) {
+            alert('✅ ' + message);
+        }
+        
+        function showError(message) {
+            alert('❌ ' + message);
+        }
+        
+        // Загрузка при старте
+        document.addEventListener('DOMContentLoaded', loadData);
     </script>
+    
+    <style>
+        .btn-action {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            margin: 2px;
+        }
+        
+        .btn-edit { background: #228be6; color: white; }
+        .btn-delete { background: #fa5252; color: white; }
+        .btn-view { background: #40c057; color: white; }
+        
+        .btn-action:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .data-table th, .data-table td {
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+        
+        .data-table td {
+            vertical-align: middle;
+        }
+    </style>
 </body>
 </html>
