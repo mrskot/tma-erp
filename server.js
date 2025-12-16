@@ -3,6 +3,8 @@ const dotenv = require("dotenv");
 const path = require("path");
 const fs = require("fs");
 
+const fakeTelegramAuth = require('./src/middleware/fakeTelegramAuth');
+
 dotenv.config();
 
 const app = express();
@@ -11,6 +13,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(fakeTelegramAuth);
 
 // Статические файлы (ВСЕГДА ПЕРВЫМИ!)
 app.use(express.static(path.join(__dirname, "public")));

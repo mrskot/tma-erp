@@ -1,0 +1,423 @@
+<!-- telegram-simulator.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Симулятор Telegram WebApp | TMA-ERP</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .simulator-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            background: #f8f9fa;
+        }
+        
+        .role-selector {
+            margin-bottom: 25px;
+        }
+        
+        .role-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .role-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .role-btn.master {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .role-btn.otk {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .role-btn.admin {
+            background: #9C27B0;
+            color: white;
+        }
+        
+        .role-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .role-btn.active {
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+        }
+        
+        .users-list {
+            margin-top: 20px;
+        }
+        
+        .user-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-card:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .user-card.selected {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+        
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .user-info h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .user-info p {
+            margin: 5px 0 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .launch-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px 32px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            margin-top: 30px;
+            transition: all 0.3s;
+        }
+        
+        .launch-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .launch-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <span style="font-size: 32px;">🔧</span>
+            Симулятор Telegram WebApp
+        </h1>
+        <p class="subtitle">Имитация авторизации Telegram для локальной разработки TMA-ERP</p>
+        
+        <div class="simulator-card">
+            <h2>1. Выберите роль</h2>
+            <div class="role-buttons">
+                <button class="role-btn master active" data-role="master">
+                    <span>👷</span> Мастер участка
+                </button>
+                <button class="role-btn otk" data-role="otk_inspector">
+                    <span>👨‍🔬</span> Контролёр ОТК
+                </button>
+                <button class="role-btn admin" data-role="admin">
+                    <span>👨‍💼</span> Администратор
+                </button>
+            </div>
+            
+            <h2 style="margin-top: 30px;">2. Выберите пользователя</h2>
+            <div class="users-list" id="users-list">
+                <!-- Пользователи будут загружены JavaScript -->
+            </div>
+            
+            <div class="info-box">
+                <strong>ℹ️ Как это работает:</strong><br>
+                В локальной разработке симулируем данные Telegram пользователя. 
+                В продакшене будет реальная авторизация через Telegram WebApp.
+            </div>
+        </div>
+        
+        <button class="launch-btn" id="launch-btn" disabled onclick="launchAsUser()">
+            <span>🚀</span> Запустить приложение
+        </button>
+    </div>
+
+    <script>
+        // Автоматическая авторизация для админки
+        (function() {
+            const adminUser = {
+                id: 9999,
+                first_name: 'Admin',
+                username: 'admin_bot', 
+                role: 'admin',
+                auth_date: Math.floor(Date.now() / 1000),
+                hash: 'admin_hash'
+            };
+            
+            localStorage.setItem('telegram_user', JSON.stringify(adminUser));
+            console.log('✅ Автоматическая авторизация для админки');
+        })();
+        
+        
+        // Тестовые пользователи для симуляции
+        const testUsers = {
+            master: [
+                {
+                    id: 1001,
+                    first_name: "Иван",
+                    last_name: "Петров",
+                    username: "master_ivan",
+                    lot_id: 7,
+                    lot_name: "Участок сборки трансформаторов",
+                    role: 'master'
+                },
+                {
+                    id: 1002,
+                    first_name: "Алексей",
+                    last_name: "Сидоров", 
+                    username: "master_alex",
+                    lot_id: 2,
+                    lot_name: "Участок покраски",
+                    role: 'master'
+                },
+                {
+                    id: 1003,
+                    first_name: "Мария",
+                    last_name: "Иванова",
+                    username: "master_maria",
+                    lot_id: 3,
+                    lot_name: "Участок упаковки",
+                    role: 'master'
+                }
+            ],
+            otk_inspector: [
+                {
+                    id: 2001,
+                    first_name: "Сергей",
+                    last_name: "Контрольный",
+                    username: "otk_sergey",
+                    role: 'otk_inspector'
+                },
+                {
+                    id: 2002,
+                    first_name: "Ольга",
+                    last_name: "Проверяющая",
+                    username: "otk_olga",
+                    role: 'otk_inspector'
+                }
+            ],
+            admin: [
+                {
+                    id: 3001,
+                    first_name: "Администратор",
+                    username: "admin_bot",
+                    role: 'admin'
+                }
+            ]
+        };
+
+        let selectedRole = 'master';
+        let selectedUser = null;
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUsersForRole(selectedRole);
+            
+            // Обработчики кнопок ролей
+            document.querySelectorAll('.role-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Снимаем активный класс со всех
+                    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+                    // Добавляем текущему
+                    this.classList.add('active');
+                    
+                    selectedRole = this.dataset.role;
+                    selectedUser = null;
+                    document.getElementById('launch-btn').disabled = true;
+                    loadUsersForRole(selectedRole);
+                });
+            });
+        });
+
+        function loadUsersForRole(role) {
+            const container = document.getElementById('users-list');
+            container.innerHTML = '';
+            
+            testUsers[role].forEach(user => {
+                const userCard = document.createElement('div');
+                userCard.className = 'user-card';
+                userCard.dataset.user = JSON.stringify(user);
+                
+                // Аватар с инициалами
+                const initials = (user.first_name[0] + (user.last_name ? user.last_name[0] : user.first_name[1] || '')).toUpperCase();
+                
+                userCard.innerHTML = `
+                    <div class="user-avatar">${initials}</div>
+                    <div class="user-info">
+                        <h3>${user.first_name} ${user.last_name || ''}</h3>
+                        <p>@${user.username} • ${getRoleDisplay(role)}</p>
+                        ${user.lot_name ? `<p><small>${user.lot_name}</small></p>` : ''}
+                    </div>
+                `;
+                
+                userCard.addEventListener('click', function() {
+                    // Снимаем выделение
+                    document.querySelectorAll('.user-card').forEach(card => {
+                        card.classList.remove('selected');
+                    });
+                    
+                    // Выделяем текущего
+                    this.classList.add('selected');
+                    
+                    selectedUser = JSON.parse(this.dataset.user);
+                    document.getElementById('launch-btn').disabled = false;
+                    
+                    console.log('Выбран пользователь:', selectedUser);
+                });
+                
+                container.appendChild(userCard);
+            });
+        }
+
+        function getRoleDisplay(role) {
+            const roles = {
+                master: '👷 Мастер участка',
+                otk_inspector: '👨‍🔬 Контролёр ОТК',
+                admin: '👨‍💼 Администратор'
+            };
+            return roles[role] || role;
+        }
+
+        function launchAsUser() {
+            if (!selectedUser) {
+                alert('Выберите пользователя!');
+                return;
+            }
+            
+            // Сохраняем данные пользователя в localStorage
+            const userData = {
+                ...selectedUser,
+                auth_date: Math.floor(Date.now() / 1000),
+                hash: 'simulated_hash_' + Date.now()
+            };
+            
+            localStorage.setItem('telegram_user', JSON.stringify(userData));
+            
+            // Редирект на нужное приложение
+            let redirectUrl;
+            
+            switch (selectedUser.role) {
+                case 'master':
+                    redirectUrl = '/admin/master.html';
+                    break;
+                case 'otk_inspector':
+                    redirectUrl = '/admin/applications.html';
+                    break;
+                case 'admin':
+                    redirectUrl = '/admin/applications.html';
+                    break;
+                default:
+                    redirectUrl = '/admin/applications.html';
+            }
+            
+            console.log('🚀 Запуск как:', selectedUser.first_name, '->', redirectUrl);
+            
+            // Редирект с небольшой задержкой для UX
+            setTimeout(() => {
+                window.location.href = redirectUrl;
+            }, 300);
+        }
+        
+        // Для отладки
+        window.debugUsers = testUsers;
+    </script>
+</body>
+</html>

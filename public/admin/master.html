@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👷 Кабинет мастера | TMA-ERP</title>
+    <style>
+        /* Используем те же стили что в applications.html */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .navbar {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .user-details h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        
+        .user-details p {
+            margin: 5px 0 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .logout-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e8eaed;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 12px 25px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .tab.active {
+            border-bottom-color: #4CAF50;
+            color: #4CAF50;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3d8b40;
+            transform: translateY(-1px);
+        }
+        
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        /* Таблица заявок */
+        .applications-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .applications-table th,
+        .applications-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .applications-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-new { background: #e3f2fd; color: #1565c0; }
+        .status-in_progress { background: #fff8e1; color: #ff8f00; }
+        .status-accepted { background: #e8f5e9; color: #2e7d32; }
+        .status-rejected { background: #ffebee; color: #c62828; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Шапка с пользователем -->
+        <div class="navbar">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">ИП</div>
+                <div class="user-details">
+                    <h2 id="user-name">Иван Петров</h2>
+                    <p id="user-role">👷 Мастер участка | <span id="user-lot">Участок сборки</span></p>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="logout()">🚪 Выйти</button>
+        </div>
+        
+        <!-- Вкладки -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('new-application')">
+                📝 Новая заявка
+            </div>
+            <div class="tab" onclick="switchTab('my-applications')">
+                📋 Мои заявки
+                <span id="apps-count-badge" class="badge" style="background: #ff4757; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 5px;">0</span>
+            </div>
+        </div>
+        
+        <!-- Вкладка "Новая заявка" -->
+        <div id="tab-new-application" class="tab-content active">
+            <div class="content-card">
+                <h2 style="margin-bottom: 25px;">📝 Создание заявки на приёмку ОТК</h2>
+                
+                <div id="create-alert" class="alert" style="display: none;"></div>
+                
+                <form id="create-form">
+                    <div class="form-group">
+                        <label for="product-select">📦 Изделие для приёмки *</label>
+                        <select id="product-select" class="form-control" required>
+                            <option value="">Выберите изделие...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="serial-number">🔢 Серийный номер (опционально)</label>
+                        <input type="text" id="serial-number" class="form-control" 
+                               placeholder="Введите серийный номер изделия">
+                        <small style="color: #666; font-size: 13px;">Оставьте пустым, если серийного номера нет</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="drawing-number">📐 Номер чертежа</label>
+                        <input type="text" id="drawing-number" class="form-control" 
+                               placeholder="Укажите номер чертежа">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="quantity">🔢 Количество изделий</label>
+                        <input type="number" id="quantity" class="form-control" 
+                               min="1" max="10" value="1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notes">📝 Примечания</label>
+                        <textarea id="notes" class="form-control" rows="3" 
+                                  placeholder="Дополнительная информация для ОТК..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="desired-time">⏰ Желаемое время приёмки</label>
+                        <input type="datetime-local" id="desired-time" class="form-control">
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 30px;">
+                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 18px;">
+                            <span id="submit-text">📨 Отправить заявку</span>
+                            <span id="submit-loading" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i> Создание...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Вкладка "Мои заявки" -->
+        <div id="tab-my-applications" class="tab-content">
+            <div class="content-card">
+                <h2 style="margin-bottom: 25px;">📋 Мои заявки</h2>
+                
+                <div id="apps-loading" class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Загрузка заявок...
+                </div>
+                
+                <div id="apps-container" style="display: none;">
+                    <table class="applications-table">
+                        <thead>
+                            <tr>
+                                <th>Номер</th>
+                                <th>Изделие</th>
+                                <th>Чертеж</th>
+                                <th>Статус</th>
+                                <th>Дата создания</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="apps-table-body">
+                            <!-- Заполнится JavaScript -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="apps-empty" class="empty-state" style="display: none;">
+                        📭 У вас пока нет заявок
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ============
+        let currentUser = null;
+        let userProducts = [];
+        let userApplications = [];
+        
+        // ============ ИНИЦИАЛИЗАЦИЯ ============
+        async function initializeMasterApp() {
+            console.log('🔧 Инициализация кабинета мастера...');
+            
+            // 1. Получаем пользователя из localStorage
+            const storedUser = localStorage.getItem('telegram_user');
+            if (!storedUser) {
+                console.log('❌ Пользователь не найден, редирект на симулятор');
+                window.location.href = '/telegram-simulator.html';
+                return;
+            }
+            
+            try {
+                currentUser = JSON.parse(storedUser);
+                console.log('👤 Текущий пользователь:', currentUser);
+                
+                if (currentUser.role !== 'master') {
+                    alert('❌ Эта страница только для мастеров!');
+                    window.location.href = '/telegram-simulator.html';
+                    return;
+                }
+                
+                // 2. Обновляем интерфейс
+                updateUserUI();
+                
+                // 3. Загружаем изделия участка мастера
+                await loadUserProducts();
+                
+                // 4. Загружаем заявки мастера
+                await loadUserApplications();
+                
+                console.log('✅ Кабинет мастера готов!');
+                
+            } catch (error) {
+                console.error('❌ Ошибка инициализации:', error);
+                alert('Ошибка загрузки. Попробуйте войти снова.');
+                logout();
+            }
+        }
+        
+        function updateUserUI() {
+            // Аватар с инициалами
+            const initials = (currentUser.first_name[0] + 
+                            (currentUser.last_name ? currentUser.last_name[0] : 
+                             currentUser.first_name[1] || '')).toUpperCase();
+            
+            document.getElementById('user-avatar').textContent = initials;
+            document.getElementById('user-name').textContent = 
+                `${currentUser.first_name} ${currentUser.last_name || ''}`;
+            document.getElementById('user-lot').textContent = currentUser.lot_name || 'Участок';
+        }
+        
+        async function loadUserProducts() {
+            console.log('🔍 DEBUG loadUserProducts вызвана');
+            console.log('📊 currentUser:', currentUser);
+            
+            try {
+                console.log('🌐 Запрос к /api/v1/products...');
+                
+                const response = await fetch('/api/v1/products');
+                console.log('📥 Ответ сервера:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('📦 Данные от API:', data);
+                
+                if (data.success) {
+                    userProducts = data.products || [];
+                    console.log('✅ Продукты загружены:', userProducts.length);
+                    
+                    // Выведи первые 3 продукта для проверки
+                    if (userProducts.length > 0) {
+                        console.log('📝 Примеры продуктов:');
+                        userProducts.slice(0, 3).forEach((p, i) => {
+                            console.log(`  ${i+1}. ${p.name} (ID: ${p.id}, тип: ${p.type})`);
+                        });
+                    }
+                    
+                    populateProductSelect();
+                } else {
+                    console.error('❌ Ошибка API:', data.error);
+                    showAlert('Ошибка загрузки изделий: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('🔥 Ошибка загрузки продуктов:', error);
+                showAlert('Сетевая ошибка: ' + error.message, 'error');
+            }
+        }
+        
+        function populateProductSelect() {
+            const select = document.getElementById('product-select');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">Выберите изделие...</option>';
+            
+            userProducts.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.id;
+                option.textContent = `${product.name} (${product.type_display || product.type})`;
+                select.appendChild(option);
+            });
+        }
+        
+        async function loadUserApplications() {
+            try {
+                console.log('📋 Загрузка заявок мастера:', currentUser.id);
+                
+                const response = await fetch(`/api/v1/applications?creator=${currentUser.id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    userApplications = data.applications || [];
+                    updateApplicationsUI();
+                } else {
+                    throw new Error(data.error || 'Ошибка загрузки заявок');
+                }
+            } catch (error) {
+                console.error('❌ Ошибка загрузки заявок:', error);
+                // Не показываем ошибку пользователю
+            }
+        }
+        
+        function updateApplicationsUI() {
+            const countBadge = document.getElementById('apps-count-badge');
+            const container = document.getElementById('apps-container');
+            const loading = document.getElementById('apps-loading');
+            const empty = document.getElementById('apps-empty');
+            const tbody = document.getElementById('apps-table-body');
+            
+            // Обновляем счетчик
+            if (countBadge) {
+                countBadge.textContent = userApplications.length;
+                countBadge.style.display = userApplications.length > 0 ? 'inline' : 'none';
+            }
+            
+            // Скрываем loading
+            if (loading) loading.style.display = 'none';
+            
+            if (userApplications.length === 0) {
+                if (empty) empty.style.display = 'block';
+                if (container) container.style.display = 'none';
+                return;
+            }
+            
+            // Показываем таблицу
+            if (container) container.style.display = 'block';
+            if (empty) empty.style.display = 'none';
+            
+            // Заполняем таблицу
+            if (tbody) {
+                tbody.innerHTML = '';
+                
+                userApplications.forEach(app => {
+                    const row = document.createElement('tr');
+                    
+                    const statusClass = `status-${app.status}`;
+                    const statusText = getStatusText(app.status);
+                    const createdAt = app.created_at ? 
+                        new Date(app.created_at).toLocaleString('ru-RU') : '—';
+                    
+                    row.innerHTML = `
+                        <td><strong>${app.application_number || '—'}</strong></td>
+                        <td>${app.product_name || '—'}</td>
+                        <td>${app.drawing_number || '—'}</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td>${createdAt}</td>
+                        <td>
+                            <button class="btn" style="padding: 5px 10px; font-size: 12px;" 
+                                    onclick="viewApplication(${app.id})">
+                                👁️ Просмотр
+                            </button>
+                        </td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            }
+        }
+        
+        function getStatusText(status) {
+            const statusMap = {
+                'new': '🆕 Новая',
+                'assigned_to_otk': '👤 Назначена',
+                'in_progress': '🔧 В работе', 
+                'accepted': '✅ Принята',
+                'rejected': '❌ Отклонена',
+                'in_resolution': '🔄 В устранении'
+            };
+            return statusMap[status] || status;
+        }
+        
+        // ============ СОЗДАНИЕ ЗАЯВКИ ============
+        document.getElementById('create-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const submitBtn = event.submitter;
+            const submitText = document.getElementById('submit-text');
+            const submitLoading = document.getElementById('submit-loading');
+            
+            // Блокируем кнопку
+            submitBtn.disabled = true;
+            submitText.style.display = 'none';
+            submitLoading.style.display = 'inline';
+            
+            try {
+                // Собираем данные
+                const productId = document.getElementById('product-select').value;
+                const serialNumber = document.getElementById('serial-number').value.trim();
+                const drawingNumber = document.getElementById('drawing-number').value.trim();
+                const quantity = document.getElementById('quantity').value;
+                const notes = document.getElementById('notes').value.trim();
+                const desiredTime = document.getElementById('desired-time').value;
+                
+                if (!productId) {
+                    throw new Error('Выберите изделие!');
+                }
+                
+                const requestData = {
+                    lot_id: currentUser.lot_id,
+                    product_id: productId,
+                    creator_telegram_id: currentUser.id.toString(),
+                    drawing_number: drawingNumber || null,
+                    serial_numbers: serialNumber || null,
+                    quantity: parseInt(quantity) || 1,
+                    notes: notes || null,
+                    desired_inspection_time: desiredTime || null,
+                    send_telegram: 'true'
+                };
+                
+                console.log('📤 Отправка заявки:', requestData);
+                
+                // Отправляем запрос с заголовком авторизации
+                const response = await fetch('/api/v1/applications', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Fake-Telegram-User': JSON.stringify({
+                            id: currentUser.id,
+                            role: currentUser.role,
+                            lot_id: currentUser.lot_id,
+                            username: currentUser.username || ''
+                        })
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const result = await response.json();
+                console.log('📥 Ответ сервера:', result);
+                
+                if (result.success) {
+                    showAlert(`✅ Заявка создана! Номер: ${result.applications?.[0]?.application_number || '—'}`, 'success');
+                    
+                    // Очищаем форму
+                    this.reset();
+                    
+                    // Обновляем список заявок
+                    setTimeout(() => {
+                        loadUserApplications();
+                        switchTab('my-applications');
+                    }, 1500);
+                    
+                } else {
+                    throw new Error(result.error || 'Ошибка создания заявки');
+                }
+                
+            } catch (error) {
+                console.error('❌ Ошибка создания заявки:', error);
+                showAlert(`❌ ${error.message}`, 'error');
+                
+            } finally {
+                // Разблокируем кнопку
+                submitBtn.disabled = false;
+                submitText.style.display = 'inline';
+                submitLoading.style.display = 'none';
+            }
+        });
+        
+        // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
+        function showAlert(message, type) {
+            const alertDiv = document.getElementById('create-alert');
+            if (!alertDiv) return;
+            
+            alertDiv.textContent = message;
+            alertDiv.className = `alert alert-${type === 'error' ? 'error' : 'success'}`;
+            alertDiv.style.display = 'block';
+            
+            // Автоскрытие через 5 секунд
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function switchTab(tabName) {
+            // Скрываем все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Показываем нужную
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            // Обновляем активную кнопку
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            event.target.classList.add('active');
+            
+            // Если перешли на "Мои заявки" - обновляем
+            if (tabName === 'my-applications') {
+                loadUserApplications();
+            }
+        }
+        
+        function viewApplication(appId) {
+            // Открываем в новой вкладке или модалке
+            window.open(`/applications.html?view=${appId}`, '_blank');
+        }
+        
+        function logout() {
+            localStorage.removeItem('telegram_user');
+            window.location.href = '/telegram-simulator.html';
+        }
+        
+        // ============ ЗАПУСК ============
+        document.addEventListener('DOMContentLoaded', initializeMasterApp);
+    </script>
+</body>
+</html>

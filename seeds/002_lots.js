@@ -1,29 +1,34 @@
-﻿exports.seed = async function(knex) {
+﻿// seeds/002_lots.js - исправленная версия
+exports.seed = async function(knex) {
   await knex('lots').del();
   
-  await knex('lots').insert([
+  const lots = [
     {
-      name: 'Цех 1.1 - Сварка',
-      description: 'Участок сварочных работ',
-      manager_telegram_id: 'master1',
+      name: 'Участок сборки трансформаторов',
+      // code: 'CEH1', ← УБРАТЬ, нет такой колонки
       priority_level: 1,
-      distance_to_otk_meters: 150
+      manager_telegram_id: 'master_ivan',
+      distance_to_otk_meters: 50,
+      is_active: true
     },
     {
-      name: 'Цех 1.2 - Механообработка',
-      description: 'Токарные и фрезерные работы',
-      manager_telegram_id: 'master2',
+      name: 'Участок обмоток',
+      // code: 'CEH2', ← УБРАТЬ
       priority_level: 2,
-      distance_to_otk_meters: 200
+      manager_telegram_id: 'master_alex',
+      distance_to_otk_meters: 75,
+      is_active: true
     },
     {
-      name: 'Цех 2.1 - Сборка',
-      description: 'Сборочный участок',
-      manager_telegram_id: 'master1',
+      name: 'Участок покраски и сушки',
+      // code: 'CEH3', ← УБРАТЬ  
       priority_level: 3,
-      distance_to_otk_meters: 300
+      manager_telegram_id: 'master_maria',
+      distance_to_otk_meters: 100,
+      is_active: true
     }
-  ]);
+  ];
   
-  console.log('✅ Тестовые участки созданы');
+  await knex('lots').insert(lots);
+  console.log('✅ Сиды участков созданы: ' + lots.length + ' шт.');
 };

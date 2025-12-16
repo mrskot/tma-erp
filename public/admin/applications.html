@@ -692,6 +692,22 @@
             }
         }
         
+                // Автоматическая авторизация для админки
+        (function() {
+            const adminUser = {
+                id: 9999,
+                first_name: 'Admin',
+                username: 'admin_bot', 
+                role: 'admin',
+                auth_date: Math.floor(Date.now() / 1000),
+                hash: 'admin_hash'
+            };
+            
+            localStorage.setItem('telegram_user', JSON.stringify(adminUser));
+            console.log('✅ Автоматическая авторизация для админки');
+        })();
+
+
         function showError(message) {
             alert('❌ Ошибка: ' + message);
             console.error('TMA-ERP Error:', message);

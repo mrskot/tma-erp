@@ -29,4 +29,41 @@ router.put('/:id', ProductController.update);
 // DELETE /api/v1/products/:id - удалить изделие
 router.delete('/:id', ProductController.delete);
 
+router.get('/', async (req, res) => {
+    try {
+        const { lot_id } = req.query;
+        
+        let query = db('products').where({ is_active: true });
+        
+        // Фильтр по участку
+        if (lot_id) {
+            // TODO: Реализуй связь продуктов с участками
+            // Пока возвращаем все активные продукты
+        }
+        
+        const products = await query.select('*');
+        
+        // Добавляем отображаемый тип
+        const productsWithDisplay = products.map(product => ({
+            ...product,
+            type_display: product.type === 'semi_finished' ? 'Полуфабрикат' :
+                         product.type === 'assembly' ? 'Узел' :
+                         product.type === 'finished' ? 'Готовая продукция' : product.type
+        }));
+        
+        res.json({
+            success: true,
+            products: productsWithDisplay
+        });
+        
+    } catch (error) {
+        console.error('Get products error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Ошибка при получении списка изделий'
+        });
+    }
+});
+
+
 module.exports = router;
