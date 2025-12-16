@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Заявки - ПРОСТОЙ ТЕСТ</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .app-card { border:1px solid #ddd; padding:15px; margin:10px; border-radius:8px; }
+        .loading { padding:40px; text-align:center; color:#666; }
+        .error { background:#f8d7da; color:#721c24; padding:15px; border-radius:8px; margin:20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Заявки ОТК (тестовая версия)</h1>
+        <button onclick="loadData()" class="btn btn-primary">Загрузить заявки</button>
+        <div id="applications-list" class="loading">Нажмите "Загрузить заявки"</div>
+    </div>
+
+    <script>
+        async function loadData() {
+            const container = document.getElementById('applications-list');
+            container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Загрузка...</div>';
+            
+            try {
+                console.log('🔄 Запрашиваем API...');
+                const response = await fetch('/api/v1/applications');
+                const data = await response.json();
+                
+                console.log('📊 Ответ API:', data);
+                
+                if (data.success && data.applications.length > 0) {
+                    let html = '<div class="applications-table">';
+                    
+                    data.applications.forEach(app => {
+                        html += `
+                            <div class="app-card">
+                                <h3>Заявка #${app.application_number || app.id}</h3>
+                                <p><strong>Участок:</strong> ${app.lot_name || '—'}</p>
+                                <p><strong>Изделие:</strong> ${app.product_name || '—'}</p>
+                                <p><strong>Чертеж:</strong> ${app.drawing_number || '—'}</p>
+                                <p><strong>Серийник:</strong> ${app.product_serial_number || '—'}</p>
+                                <p><strong>Статус:</strong> ${app.status}</p>
+                                <p><small>Создана: ${new Date(app.created_at).toLocaleString()}</small></p>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    container.innerHTML = html;
+                    console.log('✅ Заявки отображены!');
+                } else {
+                    container.innerHTML = `<div class="error">Нет заявок или ошибка: ${data.error || 'Неизвестная ошибка'}</div>`;
+                }
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+                container.innerHTML = `<div class="error">Ошибка загрузки: ${error.message}</div>`;
+            }
+        }
+        
+        // Автозагрузка при открытии
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+<script>
+    console.log('🔄 Принудительная перезагрузка данных...');
+    
+    // Ждем загрузки DOM
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializePage);
+    } else {
+        initializePage();
+    }
+    
+            // Кнопка для отладки
+            const debugBtn = document.createElement('button');
+            debugBtn.textContent = '🛠️ DEBUG';
+            debugBtn.style.cssText = 'position:fixed; top:20px; right:20px; z-index:9999; padding:10px; background:#ff9800; color:white; border:none; border-radius:5px; cursor:pointer;';
+            debugBtn.onclick = function() {
+                console.log('=== DEBUG INFO ===');
+                console.log('Заявки:', window.applications);
+                console.log('Контейнер:', document.getElementById('applications-list'));
+                console.log('Рендер функция:', typeof renderApplicationsTable);
+                if (typeof loadApplications === 'function') loadApplications();
+            };
+            document.body.appendChild(debugBtn);
+        </script>
+
+</body>
+</html>

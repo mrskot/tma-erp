@@ -3,115 +3,1656 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Заявки - TMA-ERP</title>
+    <title>Заявки ОТК - TMA-ERP</title>
     <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        /* Специфичные стили для заявок */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin: 2px;
+        }
+        
+        .status-new { background: #e3f2fd; color: #1565c0; }
+        .status-assigned_to_otk { background: #fff3e0; color: #ef6c00; }
+        .status-in_progress { background: #fff8e1; color: #ff8f00; }
+        .status-accepted { background: #e8f5e9; color: #2e7d32; }
+        .status-rejected { background: #ffebee; color: #c62828; }
+        .status-in_resolution { background: #f3e5f5; color: #6a1b9a; }
+        .status-mixed_status { background: #e0f7fa; color: #006064; }
+        .status-kr_pending { background: #e8eaf6; color: #3949ab; }
+        .status-defect { background: #fce4ec; color: #880e4f; }
+        
+        .sync-badge {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        
+        .sync-success { background: #d4edda; color: #155724; }
+        .sync-pending { background: #fff3cd; color: #856404; }
+        .sync-failed { background: #f8d7da; color: #721c24; }
+        
+        .application-number {
+            font-weight: bold;
+            color: #1a73e8;
+        }
+        
+        .bitrix-id {
+            color: #34a853;
+            font-weight: 600;
+        }
+        
+        .telegram-message {
+            color: #4285f4;
+            cursor: pointer;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-action {
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        
+        .btn-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .btn-view { background: #1a73e8; color: white; }
+        .btn-edit { background: #fbbc04; color: white; }
+        .btn-assign { background: #4285f4; color: white; }
+        .btn-start { background: #34a853; color: white; }
+        .btn-accept { background: #0f9d58; color: white; }
+        .btn-reject { background: #ea4335; color: white; }
+        .btn-sync { background: #673ab7; color: white; }
+        .btn-delete { background: #d93025; color: white; }
+        
+        .photo-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+        
+        .has-photos { background: #34a853; }
+        .no-photos { background: #dadce0; }
+        
+        .discrepancy-count {
+            background: #f8f9fa;
+            border: 1px solid #e8eaed;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        
+        /* Модальные окна */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e8eaed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(90vh - 120px);
+        }
+        
+        .modal-footer {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e8eaed;
+            text-align: right;
+        }
+        
+        /* Вкладки */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e8eaed;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            border-bottom-color: #1a73e8;
+            color: #1a73e8;
+            background: #f0f7ff;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Карточка заявки */
+        .app-card {
+            background: white;
+            border: 1px solid #e8eaed;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.2s;
+        }
+        
+        .app-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: #d2e3fc;
+        }
+        
+        .app-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .app-card-body {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .app-info-group h4 {
+            margin: 0 0 8px 0;
+            color: #5f6368;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .app-info-group p {
+            margin: 0;
+            font-size: 14px;
+            color: #202124;
+        }
+        
+        /* Дополнительные стили */
+        .applications-table {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-size: 16px;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .status-actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .status-btn {
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        .btn-status-new { background: #e3f2fd; color: #1565c0; }
+        .btn-status-assign { background: #fff3e0; color: #ef6c00; }
+        .btn-status-start { background: #fff8e1; color: #ff8f00; }
+        .btn-status-accept { background: #e8f5e9; color: #2e7d32; }
+        .btn-status-reject { background: #ffebee; color: #c62828; }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .detail-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .detail-item h4 {
+            margin: 0 0 5px 0;
+            color: #5f6368;
+            font-size: 12px;
+        }
+        
+        .detail-item p {
+            margin: 0;
+            font-size: 14px;
+            color: #202124;
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .app-card-body {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn-action {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
+        <!-- Шапка -->
         <nav class="navbar">
             <div class="nav-brand">
-                <h1><i class="fas fa-clipboard-check"></i> Управление заявками</h1>
-                <p>Заявки на приёмку ОТК</p>
+                <h1><i class="fas fa-clipboard-check"></i> Заявки на приёмку ОТК</h1>
+                <p>Создание, отслеживание и управление заявками контроля качества</p>
             </div>
             <div class="nav-links">
                 <a href="/admin" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Назад в админку
                 </a>
-                <button onclick="createApplication()" class="btn btn-success">
-                    <i class="fas fa-plus"></i> Создать заявку
+                <button onclick="showCreateModal()" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Новая заявка
+                </button>
+                <button onclick="refreshData()" class="btn btn-info" title="Обновить">
+                    <i class="fas fa-sync-alt"></i>
                 </button>
             </div>
         </nav>
-        
+
+        <!-- Статистика и фильтры -->
         <div class="content-card">
-            <h2><i class="fas fa-info-circle"></i> Информация</h2>
-            <p>Это страница управления заявками на приёмку ОТК.</p>
-            
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" id="total-apps">0</div>
-                    <div class="stat-label">Всего заявок</div>
+                    <div class="stat-icon" style="background: #e3f2fd;">
+                        <i class="fas fa-file-alt" style="color: #1565c0;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="total-apps">0</h3>
+                        <p>Всего заявок</p>
+                    </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="active-apps">0</div>
-                    <div class="stat-label">Активных</div>
+                    <div class="stat-icon" style="background: #fff3e0;">
+                        <i class="fas fa-clock" style="color: #ef6c00;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="pending-apps">0</h3>
+                        <p>В ожидании</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #e8f5e9;">
+                        <i class="fas fa-check-circle" style="color: #2e7d32;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="accepted-apps">0</h3>
+                        <p>Принято</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #ffebee;">
+                        <i class="fas fa-times-circle" style="color: #c62828;"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="rejected-apps">0</h3>
+                        <p>Отклонено</p>
+                    </div>
                 </div>
             </div>
             
-            <h2><i class="fas fa-plug"></i> API Endpoints</h2>
-            <div>
-                <a href="/api/v1/applications" target="_blank" class="api-link">
-                    GET /api/v1/applications
-                </a>
-                <a href="/api/v1/applications/new-for-otk" target="_blank" class="api-link">
-                    GET /api/v1/applications/new-for-otk
-                </a>
+            <div class="filters" style="margin-top: 20px;">
+                <h3><i class="fas fa-filter"></i> Фильтры</h3>
+                <div class="filter-row">
+                    <div class="form-group">
+                        <label for="filter-status">Статус</label>
+                        <select id="filter-status" class="form-control" onchange="filterApplications()">
+                            <option value="">Все статусы</option>
+                            <option value="new">🆕 Новая</option>
+                            <option value="assigned_to_otk">👤 Назначена ОТК</option>
+                            <option value="in_progress">🔧 В работе</option>
+                            <option value="accepted">✅ Принята</option>
+                            <option value="rejected">❌ Отклонена</option>
+                            <option value="in_resolution">🔄 В устранении</option>
+                            <option value="mixed_status">⚡ Смешанный</option>
+                            <option value="kr_pending">📋 КР на согласовании</option>
+                            <option value="defect">🚫 Брак</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-lot">Участок</label>
+                        <select id="filter-lot" class="form-control" onchange="filterApplications()">
+                            <option value="">Все участки</option>
+                            <!-- Заполнится JavaScript -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-date">Дата создания</label>
+                        <input type="date" id="filter-date" class="form-control" onchange="filterApplications()">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button onclick="resetFilters()" class="btn btn-secondary" style="margin-top: 8px;">
+                            <i class="fas fa-redo"></i> Сбросить
+                        </button>
+                    </div>
+                </div>
             </div>
-            
-            <h2><i class="fas fa-table"></i> Список заявок</h2>
-            <div id="apps-table">
-                <p><i>Загрузка данных...</i></p>
+        </div>
+
+        <!-- Вкладки -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('list')">
+                <i class="fas fa-list"></i> Список заявок
+            </div>
+            <div class="tab" onclick="switchTab('sync')">
+                <i class="fas fa-sync"></i> Синхронизация
+                <span id="sync-badge" class="badge" style="background: #dc3545; margin-left: 5px;">0</span>
+            </div>
+            <div class="tab" onclick="switchTab('reports')">
+                <i class="fas fa-chart-bar"></i> Отчёты
+            </div>
+        </div>
+
+        <!-- Список заявок -->
+        <div id="tab-list" class="tab-content active">
+            <div id="applications-list">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Загрузка заявок...
+                </div>
+            </div>
+        </div>
+
+        <!-- Синхронизация -->
+        <div id="tab-sync" class="tab-content">
+            <div class="content-card">
+                <h3><i class="fas fa-sync-alt"></i> Статус синхронизации</h3>
+                <div id="sync-status">
+                    <p><i class="fas fa-spinner fa-spin"></i> Загрузка статуса...</p>
+                </div>
+                <div class="sync-controls" style="margin-top: 20px;">
+                    <button onclick="processSyncQueue()" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Запустить синхронизацию
+                    </button>
+                    <button onclick="clearFailedSyncs()" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Очистить неудачные
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Отчёты -->
+        <div id="tab-reports" class="tab-content">
+            <div class="content-card">
+                <h3><i class="fas fa-chart-bar"></i> Отчёты по заявкам</h3>
+                <p>Отчёты в разработке...</p>
             </div>
         </div>
     </div>
-    
+
+    <!-- Модальное окно создания заявки -->
+    <div id="create-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-plus-circle"></i> Новая заявка на приёмку</h2>
+                <button onclick="closeCreateModal()" class="btn btn-text">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="create-form" onsubmit="createApplication(event)" enctype="multipart/form-data">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="create-lot-id"><i class="fas fa-industry"></i> Участок производства *</label>
+                            <select id="create-lot-id" class="form-control" required>
+                                <option value="">Выберите участок...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="create-product-id"><i class="fas fa-cube"></i> Изделие *</label>
+                            <select id="create-product-id" class="form-control" required>
+                                <option value="">Выберите изделие...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="create-drawing-number"><i class="fas fa-drafting-compass"></i> Номер чертежа</label>
+                            <input type="text" id="create-drawing-number" class="form-control" 
+                                  placeholder="Укажите номер чертежа">
+                        </div>
+                        <div class="form-group">
+                            <label for="create-quantity"><i class="fas fa-hashtag"></i> Количество изделий</label>
+                            <input type="number" id="create-quantity" class="form-control" 
+                                  min="1" max="100" value="1"
+                                  onchange="toggleSerialNumbers()">
+                            <small class="text-muted">Сколько изделий на приёмку?</small>
+                        </div>
+                    </div>
+                    
+                    <!-- БЛОК СЕРИЙНЫХ НОМЕРОВ -->
+                    <div id="serial-numbers-section" class="form-group" style="display: none;">
+                        <label for="create-serial-numbers"><i class="fas fa-list-ol"></i> Серийные номера (опционально)</label>
+                        <textarea id="create-serial-numbers" class="form-control" rows="3"
+                                 placeholder="Введите номера через запятую (для нескольких изделий)&#10;Пример: SN-001, SN-002, SN-003"></textarea>
+                        <small class="text-muted">Оставьте пустым - будут созданы заявки без серийных номеров</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="create-notes"><i class="fas fa-sticky-note"></i> Примечания</label>
+                        <textarea id="create-notes" class="form-control" rows="2" 
+                                 placeholder="Дополнительная информация..."></textarea>
+                    </div>
+                    
+                    <!-- Блок загрузки фото МКИ -->
+                    <div class="photo-upload-section" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <h4><i class="fas fa-camera"></i> Маршрутная карта / Чертежи (МКИ)</h4>
+                        <div id="mki-photos-preview" class="photos-preview" style="margin: 10px 0; min-height: 50px; display: flex; flex-wrap: wrap; gap: 10px;">
+                            <!-- Превью загруженных фото -->
+                        </div>
+                        <div class="form-group">
+                            <label for="mki-photo-input" class="btn btn-outline-primary" style="display: block; text-align: center; cursor: pointer;">
+                                <i class="fas fa-cloud-upload-alt"></i> Выбрать файлы
+                            </label>
+                            <input type="file" id="mki-photo-input" multiple accept="image/*" style="display: none;"
+                                  onchange="previewMkiPhotos(this)">
+                            <small class="text-muted">Загрузите фото маршрутной карты или чертежа (JPG, PNG, до 10MB, макс. 5 файлов)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row" style="margin-top: 15px;">
+                        <div class="form-group">
+                            <label for="create-desired-time"><i class="fas fa-clock"></i> Желаемое время приёмки</label>
+                            <input type="datetime-local" id="create-desired-time" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="create-otk-inspector"><i class="fas fa-user-check"></i> Контролёр ОТК</label>
+                            <select id="create-otk-inspector" class="form-control">
+                                <option value="">Автоназначение (из изделия)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check" style="margin: 15px 0;">
+                        <input type="checkbox" id="create-send-telegram" class="form-check-input" checked>
+                        <label for="create-send-telegram" class="form-check-label">
+                            Отправить уведомление в Telegram-канал
+                        </label>
+                    </div>
+                    
+                    <!-- КНОПКИ -->
+                    <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+                        <button type="button" onclick="closeCreateModal()" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Отмена
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-paper-plane"></i> Создать заявку
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно просмотра заявки -->
+    <div id="view-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="view-title">Заявка #</h2>
+                <button onclick="closeViewModal()" class="btn btn-text">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="view-content">
+                    <!-- Заполнится JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeViewModal()" class="btn btn-secondary">
+                    Закрыть
+                </button>
+                <button onclick="editApplication()" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Редактировать
+                </button>
+                <button onclick="deleteApplication()" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Удалить
+                </button>
+                <button onclick="syncApplication()" class="btn btn-primary">
+                    <i class="fas fa-sync"></i> Синхронизировать
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Редактирование заявки</h2>
+                <button onclick="closeEditModal()" class="btn btn-text">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-form" onsubmit="updateApplication(event)">
+                    <div id="edit-content">
+                        <!-- Заполнится JavaScript -->
+                    </div>
+                    <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+                        <button type="button" onclick="closeEditModal()" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Отмена
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Сохранить
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно смены статуса -->
+    <div id="status-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-exchange-alt"></i> Смена статуса заявки</h2>
+                <button onclick="closeStatusModal()" class="btn btn-text">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-status">Новый статус:</label>
+                    <select id="new-status" class="form-control">
+                        <option value="new">🆕 Новая</option>
+                        <option value="assigned_to_otk">👤 Назначена ОТК</option>
+                        <option value="in_progress">🔧 В работе</option>
+                        <option value="accepted">✅ Принята</option>
+                        <option value="rejected">❌ Отклонена</option>
+                        <option value="in_resolution">🔄 В устранении</option>
+                        <option value="kr_pending">📋 КР на согласовании</option>
+                        <option value="defect">🚫 Брак</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="status-notes">Примечание (опционально):</label>
+                    <textarea id="status-notes" class="form-control" rows="3" placeholder="Добавьте комментарий к смене статуса..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeStatusModal()" class="btn btn-secondary">
+                    Отмена
+                </button>
+                <button onclick="confirmStatusChange()" class="btn btn-primary">
+                    <i class="fas fa-check"></i> Сменить статус
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопка для отладки -->
+    <button onclick="forceDebug()" class="btn btn-warning" 
+            style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
+        <i class="fas fa-bug"></i> DEBUG
+    </button>
+
+    <!-- СКОПИРУЙ ВЕСЬ ЭТОТ БЛОК СКРИПТОВ -->
     <script>
-        function createApplication() {
-            alert('Форма создания заявки в разработке');
+        // ============ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ============
+        window.applications = [];
+        window.filteredApplications = [];
+        window.lots = [];
+        window.products = [];
+        window.users = [];
+        window.currentApplicationId = null;
+        window.currentApplication = null;
+        window.currentTab = 'list';
+        window.pendingStatusChanges = {};
+        
+        // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
+        function showLoading() {
+            const container = document.getElementById('applications-list');
+            if (container) {
+                container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Загрузка...</div>';
+            }
+        }
+        
+        function showError(message) {
+            alert('❌ Ошибка: ' + message);
+            console.error('TMA-ERP Error:', message);
+        }
+        
+        function showSuccess(message) {
+            alert('✅ ' + message);
+        }
+        
+        function getStatusText(status) {
+            const statusMap = {
+                'new': '🆕 Новая',
+                'assigned_to_otk': '👤 Назначена ОТК',
+                'in_progress': '🔧 В работе',
+                'accepted': '✅ Принята',
+                'rejected': '❌ Отклонена',
+                'in_resolution': '🔄 В устранении',
+                'mixed_status': '⚡ Смешанный',
+                'kr_pending': '📋 КР на согласовании',
+                'defect': '🚫 Брак'
+            };
+            return statusMap[status] || status;
+        }
+        
+        // ============ ОСНОВНЫЕ ФУНКЦИИ ЗАГРУЗКИ ============
+        async function loadLots() {
+            try {
+                console.log('Запрос на /api/v1/lots...');
+                const response = await fetch('/api/v1/lots');
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.lots = data.lots || [];
+                    console.log('Участки загружены: ' + window.lots.length);
+                    populateLotSelects();
+                } else {
+                    console.error('Ошибка загрузки участков:', data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки участков:', error);
+            }
+        }
+        
+        async function loadProducts() {
+            try {
+                console.log('Запрос на /api/v1/products...');
+                const response = await fetch('/api/v1/products');
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.products = data.products || [];
+                    console.log('Изделия загружены: ' + window.products.length);
+                    populateProductSelects();
+                } else {
+                    console.error('Ошибка загрузки изделий:', data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки изделий:', error);
+            }
+        }
+        
+        async function loadUsers() {
+            try {
+                console.log('Запрос на /api/v1/users...');
+                const response = await fetch('/api/v1/users');
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.users = data.users || [];
+                    console.log('Пользователи загружены: ' + window.users.length);
+                    populateUserSelects();
+                } else {
+                    console.error('Ошибка загрузки пользователей:', data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки пользователей:', error);
+            }
         }
         
         async function loadApplications() {
             try {
+                console.log('🔄 Запрос на /api/v1/applications...');
                 const response = await fetch('/api/v1/applications');
+                
+                console.log('📊 Статус ответа:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                
                 const data = await response.json();
+                console.log('📊 JSON ответ получен, заявок:', data.applications?.length || 0);
                 
                 if (data.success) {
-                    document.getElementById('total-apps').textContent = data.count;
+                    window.applications = data.applications || [];
+                    window.filteredApplications = [...window.applications];
+                    console.log('✅ Заявки загружены в память:', window.applications.length);
                     
-                    const activeApps = data.applications.filter(app => 
-                        app.status === 'new' || app.status === 'in_progress'
-                    ).length;
-                    document.getElementById('active-apps').textContent = activeApps;
-                    
-                    const tableDiv = document.getElementById('apps-table');
-                    if (data.applications.length > 0) {
-                        let html = '<table class="data-table">';
-                        html += '<thead><tr>';
-                        html += '<th>Номер</th><th>Изделие</th><th>Участок</th><th>Статус</th><th>Создана</th>';
-                        html += '</tr></thead><tbody>';
-                        
-                        data.applications.forEach(app => {
-                            html += '<tr>';
-                            html += '<td>' + app.application_number + '</td>';
-                            html += '<td>' + (app.product_name || app.product_id) + '</td>';
-                            html += '<td>' + (app.lot_name || app.lot_id) + '</td>';
-                            html += '<td><span class="status-' + app.status + '">' + app.status + '</span></td>';
-                            html += '<td>' + new Date(app.created_at).toLocaleDateString('ru-RU') + '</td>';
-                            html += '</tr>';
-                        });
-                        
-                        html += '</tbody></table>';
-                        tableDiv.innerHTML = html;
-                    } else {
-                        tableDiv.innerHTML = '<p>Нет заявок в системе</p>';
-                    }
+                    updateStats();
+                    renderApplicationsTable();
+                } else {
+                    console.error('❌ Ошибка от сервера:', data.error);
+                    document.getElementById('applications-list').innerHTML = 
+                        '<div class="error">Ошибка: ' + (data.error || 'Unknown error') + '</div>';
                 }
             } catch (error) {
-                console.error('Ошибка загрузки заявок:', error);
-                document.getElementById('apps-table').innerHTML = 
-                    '<p style="color:red;">Ошибка загрузки: ' + error.message + '</p>';
+                console.error('❌ Ошибка загрузки заявок:', error);
+                document.getElementById('applications-list').innerHTML = 
+                    '<div class="error">Ошибка загрузки: ' + error.message + '</div>';
             }
         }
         
-        document.addEventListener('DOMContentLoaded', loadApplications);
+        // ============ ФИЛЬТРАЦИЯ ЗАЯВОК ============
+        function filterApplications() {
+            const statusFilter = document.getElementById('filter-status').value;
+            const lotFilter = document.getElementById('filter-lot').value;
+            const dateFilter = document.getElementById('filter-date').value;
+            
+            console.log('Фильтры:', { statusFilter, lotFilter, dateFilter });
+            
+            let filtered = [...window.applications];
+            
+            // Фильтр по статусу
+            if (statusFilter) {
+                filtered = filtered.filter(app => app.status === statusFilter);
+            }
+            
+            // Фильтр по участку
+            if (lotFilter) {
+                filtered = filtered.filter(app => app.lot_id == lotFilter);
+            }
+            
+            // Фильтр по дате
+            if (dateFilter) {
+                const filterDate = new Date(dateFilter);
+                filtered = filtered.filter(app => {
+                    const appDate = new Date(app.created_at);
+                    return appDate.toDateString() === filterDate.toDateString();
+                });
+            }
+            
+            window.filteredApplications = filtered;
+            renderApplicationsTable();
+            
+            // Обновляем статистику фильтров
+            document.getElementById('total-apps').textContent = filtered.length;
+        }
+        
+        function resetFilters() {
+            document.getElementById('filter-status').value = '';
+            document.getElementById('filter-lot').value = '';
+            document.getElementById('filter-date').value = '';
+            
+            window.filteredApplications = [...window.applications];
+            renderApplicationsTable();
+            updateStats();
+        }
+        
+        // ============ ОТОБРАЖЕНИЕ ДАННЫХ ============
+        function updateStats() {
+            const total = window.applications.length;
+            const pending = window.applications.filter(a => a.status === 'new').length;
+            const accepted = window.applications.filter(a => a.status === 'accepted').length;
+            const rejected = window.applications.filter(a => a.status === 'rejected').length;
+            
+            const totalEl = document.getElementById('total-apps');
+            const pendingEl = document.getElementById('pending-apps');
+            const acceptedEl = document.getElementById('accepted-apps');
+            const rejectedEl = document.getElementById('rejected-apps');
+            
+            if (totalEl) totalEl.textContent = total;
+            if (pendingEl) pendingEl.textContent = pending;
+            if (acceptedEl) acceptedEl.textContent = accepted;
+            if (rejectedEl) rejectedEl.textContent = rejected;
+        }
+        
+        function getStatusControl(app) {
+            const statuses = [
+                { value: 'new', text: '🆕 Новая' },
+                { value: 'assigned_to_otk', text: '👤 Назначена ОТК' },
+                { value: 'in_progress', text: '🔧 В работе' },
+                { value: 'accepted', text: '✅ Принята' },
+                { value: 'rejected', text: '❌ Отклонена' },
+                { value: 'in_resolution', text: '🔄 В устранении' },
+                { value: 'mixed_status', text: '⚡ Смешанный' },
+                { value: 'kr_pending', text: '📋 КР на согласовании' },
+                { value: 'defect', text: '🚫 Брак' }
+            ];
+            
+            let options = '';
+            statuses.forEach(status => {
+                options += `<option value="${status.value}" ${app.status === status.value ? 'selected' : ''}>${status.text}</option>`;
+            });
+            
+            return `
+                <div class="status-control" style="display: flex; align-items: center;">
+                    <select class="form-control status-select" style="font-size: 12px; padding: 4px 8px; height: 32px;" 
+                            onchange="changeStatusFromSelect(${app.id}, this.value)">
+                        ${options}
+                    </select>
+                    <button class="btn-status-apply" onclick="applyStatusChange(${app.id})" 
+                            style="margin-left: 5px; padding: 4px 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                        OK
+                    </button>
+                </div>
+            `;
+        }
+        
+        function renderApplicationsTable() {
+            const container = document.getElementById('applications-list');
+            if (!container) {
+                console.error('❌ Контейнер applications-list не найден!');
+                return;
+            }
+            
+            const applications = window.filteredApplications;
+            console.log('🔄 Рендеринг таблицы заявок:', applications.length);
+            
+            if (applications.length === 0) {
+                container.innerHTML = '<div class="empty-state">Нет заявок</div>';
+                return;
+            }
+            
+            let html = '<div class="applications-table">';
+            
+            applications.forEach(app => {
+                const statusClass = 'status-' + app.status;
+                const statusText = getStatusText(app.status);
+                
+                html += '<div class="app-card">';
+                html += '<div class="app-card-header">';
+                html += '<div>';
+                html += '<h3 class="application-number">' + (app.application_number || 'Без номера') + '</h3>';
+                html += '<span class="status-badge ' + statusClass + '">' + statusText + '</span>';
+                html += '</div>';
+                html += '<div class="action-buttons">';
+                html += '<button class="btn-action btn-view" onclick="viewApplication(' + app.id + ')">';
+                html += '<i class="fas fa-eye"></i> Просмотр';
+                html += '</button>';
+                html += '<button class="btn-action btn-edit" onclick="editApplication(' + app.id + ')">';
+                html += '<i class="fas fa-edit"></i> Ред.';
+                html += '</button>';
+                html += '<button class="btn-action btn-delete" onclick="deleteApplication(' + app.id + ', \'' + app.application_number + '\')">';
+                html += '<i class="fas fa-trash"></i> Уд.';
+                html += '</button>';
+                html += '</div>';
+                html += '</div>';
+                html += '<div class="app-card-body">';
+                html += '<div class="app-info-group">';
+                html += '<h4>Участок</h4>';
+                html += '<p>' + (app.lot_name || 'Не указан') + '</p>';
+                html += '</div>';
+                html += '<div class="app-info-group">';
+                html += '<h4>Изделие</h4>';
+                html += '<p>' + (app.product_name || 'Не указано') + '</p>';
+                html += '</div>';
+                html += '<div class="app-info-group">';
+                html += '<h4>Чертеж</h4>';
+                html += '<p>' + (app.drawing_number || '—') + '</p>';
+                html += '</div>';
+                html += '<div class="app-info-group">';
+                html += '<h4>Серийный номер</h4>';
+                html += '<p>' + (app.product_serial_number || '—') + '</p>';
+                html += '</div>';
+                html += '<div class="app-info-group">';
+                html += '<h4>Статус</h4>';
+                html += getStatusControl(app);
+                html += '</div>';
+                html += '<div class="app-info-group">';
+                html += '<h4>Дата создания</h4>';
+                html += '<p>' + (app.created_at ? new Date(app.created_at).toLocaleString() : 'Не указана') + '</p>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+            console.log('✅ Таблица заявок отрендерена!');
+        }
+        
+        // ============ СМЕНА СТАТУСОВ ============
+        function changeStatusFromSelect(appId, newStatus) {
+            window.pendingStatusChanges[appId] = newStatus;
+        }
+        
+        async function applyStatusChange(appId) {
+            const newStatus = window.pendingStatusChanges[appId];
+            if (!newStatus) {
+                alert('❌ Сначала выберите статус из списка');
+                return;
+            }
+            
+            const statusText = getStatusText(newStatus);
+            const notes = prompt('Добавьте комментарий к смене статуса (опционально):');
+            
+            if (confirm(`Изменить статус заявки #${appId} на "${statusText}"?`)) {
+                try {
+                    const response = await fetch(`/api/v1/applications/${appId}/status`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            status: newStatus, 
+                            notes: notes || '' 
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showSuccess('Статус успешно изменен!');
+                        refreshData();
+                    } else {
+                        showError('Ошибка: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Ошибка смены статуса:', error);
+                    showError('Ошибка: ' + error.message);
+                }
+            }
+            
+            delete window.pendingStatusChanges[appId];
+        }
+        
+        // ============ ПРОСМОТР ЗАЯВКИ ============
+        async function viewApplication(id) {
+            try {
+                console.log('Просмотр заявки #' + id);
+                const response = await fetch('/api/v1/applications/' + id);
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.currentApplication = data.application;
+                    window.currentApplicationId = id;
+                    
+                    const app = data.application;
+                    const statusText = getStatusText(app.status);
+                    
+                    let html = '<div class="details-grid">';
+                    html += '<div class="detail-item">';
+                    html += '<h4>Номер заявки</h4>';
+                    html += '<p>' + (app.application_number || 'N/A') + '</p>';
+                    html += '</div>';
+                    
+                    html += '<div class="detail-item">';
+                    html += '<h4>Статус</h4>';
+                    html += '<p><span class="status-badge status-' + app.status + '">' + statusText + '</span></p>';
+                    html += '</div>';
+                    
+                    html += '<div class="detail-item">';
+                    html += '<h4>Участок</h4>';
+                    html += '<p>' + (app.lot_name || 'N/A') + '</p>';
+                    html += '</div>';
+                    
+                    html += '<div class="detail-item">';
+                    html += '<h4>Изделие</h4>';
+                    html += '<p>' + (app.product_name || 'N/A') + '</p>';
+                    html += '</div>';
+                    
+                    html += '<div class="detail-item">';
+                    html += '<h4>Чертеж</h4>';
+                    html += '<p>' + (app.drawing_number || '—') + '</p>';
+                    html += '</div>';
+                    
+                    html += '<div class="detail-item">';
+                    html += '<h4>Серийный номер</h4>';
+                    html += '<p>' + (app.product_serial_number || '—') + '</p>';
+                    html += '</div>';
+                    
+                    html += '<div class="detail-item">';
+                    html += '<h4>Создатель</h4>';
+                    html += '<p>' + (app.creator_telegram_id || 'N/A') + '</p>';
+                    html += '</div>';
+                    
+                    html += '<div class="detail-item">';
+                    html += '<h4>Контролёр ОТК</h4>';
+                    html += '<p>' + (app.otk_inspector_telegram_id || 'Не назначен') + '</p>';
+                    html += '</div>';
+                    
+                    html += '<div class="detail-item">';
+                    html += '<h4>Дата создания</h4>';
+                    html += '<p>' + (app.created_at ? new Date(app.created_at).toLocaleString() : 'N/A') + '</p>';
+                    html += '</div>';
+                    
+                    html += '<div class="detail-item">';
+                    html += '<h4>Bitrix24 ID</h4>';
+                    html += '<p>' + (app.bitrix24_id || 'Не синхронизировано') + '</p>';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    if (app.notes) {
+                        html += '<div class="detail-item" style="grid-column: 1 / -1;">';
+                        html += '<h4>Примечания</h4>';
+                        html += '<p style="white-space: pre-wrap;">' + app.notes + '</p>';
+                        html += '</div>';
+                    }
+                    
+                    // Фото МКИ
+                    if (app.has_mki_photos) {
+                        html += '<div class="detail-item" style="grid-column: 1 / -1;">';
+                        html += '<h4><i class="fas fa-camera"></i> Фото МКИ</h4>';
+                        html += '<div id="mki-photos-container" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">';
+                        html += '<p><i class="fas fa-spinner fa-spin"></i> Загрузка фото...</p>';
+                        html += '</div>';
+                        html += '</div>';
+                    }
+                    
+                    // Опасные операции
+                    html += `
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; grid-column: 1 / -1;">
+                            <h4 style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> Опасные операции</h4>
+                            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                <button onclick="forceDeleteApplication(${app.id}, '${app.application_number}')" 
+                                        class="btn btn-danger" style="flex: 1;">
+                                    <i class="fas fa-trash-alt"></i> ПОЛНОЕ УДАЛЕНИЕ
+                                </button>
+                            </div>
+                            <small class="text-muted">Удалит из БД, Telegram и Bitrix24. Необратимо!</small>
+                        </div>
+                    `;
+                    
+                    document.getElementById('view-title').textContent = 'Заявка #' + (app.application_number || app.id);
+                    document.getElementById('view-content').innerHTML = html;
+                    showViewModal();
+                    
+                    // Загружаем фото асинхронно
+                    if (app.has_mki_photos) {
+                        setTimeout(() => loadApplicationPhotos(app.id), 100);
+                    }
+                } else {
+                    showError('Ошибка загрузки: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка просмотра заявки:', error);
+                showError('Ошибка загрузки: ' + error.message);
+            }
+        }
+        
+        // ============ ЗАГРУЗКА ФОТО ЗАЯВКИ ============
+        async function loadApplicationPhotos(appId) {
+            try {
+                const response = await fetch(`/api/v1/applications/${appId}/photos`);
+                const data = await response.json();
+                
+                if (data.success && data.photos.length > 0) {
+                    const container = document.getElementById('mki-photos-container');
+                    container.innerHTML = '';
+                    
+                    data.photos.forEach(photo => {
+                        const wrapper = document.createElement('div');
+                        wrapper.style.position = 'relative';
+                        wrapper.style.cursor = 'pointer';
+                        wrapper.style.border = '2px solid #ddd';
+                        wrapper.style.borderRadius = '8px';
+                        wrapper.style.overflow = 'hidden';
+                        wrapper.style.width = '150px';
+                        wrapper.style.height = '150px';
+                        wrapper.onclick = () => window.open(photo.url, '_blank');
+                        
+                        const img = document.createElement('img');
+                        img.src = photo.thumbnail_url || photo.url;
+                        img.style.width = '100%';
+                        img.style.height = '100%';
+                        img.style.objectFit = 'cover';
+                        img.title = photo.type === 'mki' ? 'Маршрутная карта' : 'Фото';
+                        
+                        wrapper.appendChild(img);
+                        container.appendChild(wrapper);
+                    });
+                } else {
+                    const container = document.getElementById('mki-photos-container');
+                    container.innerHTML = '<p>Фото не найдены</p>';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки фото:', error);
+                const container = document.getElementById('mki-photos-container');
+                container.innerHTML = '<p style="color: #dc3545;">Ошибка загрузки фото</p>';
+            }
+        }
+        
+        // ============ ПОЛНОЕ УДАЛЕНИЕ ЗАЯВКИ ============
+        async function forceDeleteApplication(id, appNumber) {
+            if (!confirm(`🚨 ВНИМАНИЕ!\n\nВы уверены, что хотите полностью удалить заявку #${appNumber}?\n\nЭто действие:\n• Удалит заявку из БД\n• Удалит сообщение из Telegram канала\n• Удалит заявку из Bitrix24\n• Удалит все прикрепленные файлы\n\nДействие НЕОБРАТИМО!`)) {
+                return;
+            }
+            
+            const confirmText = prompt('Для подтверждения введите "УДАЛИТЬ" (без кавычек):');
+            if (confirmText !== 'УДАЛИТЬ') {
+                alert('❌ Удаление отменено');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/v1/applications/${id}?force=true`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess('Заявка полностью удалена!');
+                    closeViewModal();
+                    refreshData();
+                } else {
+                    showError('Ошибка: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Ошибка удаления:', error);
+                showError('Ошибка: ' + error.message);
+            }
+        }
+        
+        // ============ РЕДАКТИРОВАНИЕ ЗАЯВКИ ============
+        async function editApplication(id) {
+            if (!id && window.currentApplicationId) {
+                id = window.currentApplicationId;
+            }
+            
+            if (!id) {
+                showError('Не выбрана заявка для редактирования');
+                return;
+            }
+            
+            try {
+                console.log('Редактирование заявки #' + id);
+                const response = await fetch('/api/v1/applications/' + id);
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.currentApplicationId = id;
+                    const app = data.application;
+                    
+                    let html = '<div class="form-row">';
+                    html += '<div class="form-group">';
+                    html += '<label for="edit-notes">Примечания</label>';
+                    html += '<textarea id="edit-notes" class="form-control" rows="4">' + (app.notes || '') + '</textarea>';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    html += '<div class="form-row">';
+                    html += '<div class="form-group">';
+                    html += '<label for="edit-otk-inspector">Контролёр ОТК</label>';
+                    html += '<select id="edit-otk-inspector" class="form-control">';
+                    html += '<option value="">Не назначен</option>';
+                    
+                    // Заполняем список контролёров
+                    const otkUsers = window.users.filter(user => 
+                        user.role === 'otk_inspector' || 
+                        user.role === 'admin' || 
+                        user.role === 'super_admin'
+                    );
+                    
+                    otkUsers.forEach(user => {
+                        const displayName = (user.first_name || '') + ' ' + (user.last_name || '');
+                        const selected = user.telegram_id === app.otk_inspector_telegram_id ? 'selected' : '';
+                        html += '<option value="' + user.telegram_id + '" ' + selected + '>' + 
+                               (displayName.trim() || user.username || user.telegram_id) + '</option>';
+                    });
+                    
+                    html += '</select>';
+                    html += '</div>';
+                    html += '<div class="form-group">';
+                    html += '<label for="edit-desired-time">Желаемое время приёмки</label>';
+                    html += '<input type="datetime-local" id="edit-desired-time" class="form-control" value="' + 
+                           (app.desired_inspection_time ? app.desired_inspection_time.substring(0, 16) : '') + '">';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    // Чертеж и серийник
+                    html += '<div class="form-row">';
+                    html += '<div class="form-group">';
+                    html += '<label for="edit-drawing-number">Номер чертежа</label>';
+                    html += '<input type="text" id="edit-drawing-number" class="form-control" value="' + (app.drawing_number || '') + '">';
+                    html += '</div>';
+                    html += '<div class="form-group">';
+                    html += '<label for="edit-serial-number">Серийный номер</label>';
+                    html += '<input type="text" id="edit-serial-number" class="form-control" value="' + (app.product_serial_number || '') + '">';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    document.getElementById('edit-content').innerHTML = html;
+                    showEditModal();
+                } else {
+                    showError('Ошибка загрузки: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки заявки:', error);
+                showError('Ошибка загрузки: ' + error.message);
+            }
+        }
+        
+        async function updateApplication(event) {
+            event.preventDefault();
+            
+            if (!window.currentApplicationId) {
+                showError('Не выбрана заявка для редактирования');
+                return;
+            }
+            
+            try {
+                const updates = {
+                    notes: document.getElementById('edit-notes').value,
+                    otk_inspector_telegram_id: document.getElementById('edit-otk-inspector').value || null,
+                    desired_inspection_time: document.getElementById('edit-desired-time').value || null,
+                    drawing_number: document.getElementById('edit-drawing-number').value || null,
+                    product_serial_number: document.getElementById('edit-serial-number').value || null
+                };
+                
+                console.log('Обновление заявки #' + window.currentApplicationId, updates);
+                
+                const response = await fetch('/api/v1/applications/' + window.currentApplicationId, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updates)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Заявка успешно обновлена!');
+                    closeEditModal();
+                    refreshData();
+                    closeViewModal();
+                } else {
+                    showError('Ошибка обновления: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка обновления заявки:', error);
+                showError('Ошибка обновления: ' + error.message);
+            }
+        }
+        
+        // ============ УДАЛЕНИЕ ЗАЯВКИ (мягкое) ============
+        async function deleteApplication(id, appNumber) {
+            if (!id && window.currentApplicationId) {
+                id = window.currentApplicationId;
+                appNumber = window.currentApplication?.application_number;
+            }
+            
+            if (!id) {
+                showError('Не выбрана заявка для удаления');
+                return;
+            }
+            
+            const confirmMsg = appNumber ? 
+                'Удалить заявку #' + appNumber + '?' : 
+                'Удалить заявку #' + id + '?';
+            
+            if (!confirm(confirmMsg + '\n\nВнимание: Заявка будет деактивирована (мягкое удаление).\n\nДля полного удаления используйте опцию в просмотре заявки.')) {
+                return;
+            }
+            
+            try {
+                console.log('Удаление заявки #' + id);
+                
+                const response = await fetch('/api/v1/applications/' + id, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Заявка успешно деактивирована!');
+                    closeViewModal();
+                    refreshData();
+                } else {
+                    showError('Ошибка удаления: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка удаления заявки:', error);
+                showError('Ошибка удаления: ' + error.message);
+            }
+        }
+        
+        // ============ ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ============
+        function populateLotSelects() {
+            const filterSelect = document.getElementById('filter-lot');
+            const createSelect = document.getElementById('create-lot-id');
+            
+            if (!filterSelect || !createSelect) return;
+            
+            [filterSelect, createSelect].forEach(select => {
+                select.innerHTML = '<option value="">Выберите участок...</option>';
+                
+                window.lots.forEach(lot => {
+                    const option = document.createElement('option');
+                    option.value = lot.id;
+                    option.textContent = lot.name + (lot.code ? ' (' + lot.code + ')' : '');
+                    select.appendChild(option);
+                });
+            });
+        }
+        
+        function populateProductSelects() {
+            const createSelect = document.getElementById('create-product-id');
+            if (!createSelect) return;
+            
+            createSelect.innerHTML = '<option value="">Выберите изделие...</option>';
+            
+            window.products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = product.id;
+                option.textContent = product.name + (product.type_display ? ' (' + product.type_display + ')' : '');
+                createSelect.appendChild(option);
+            });
+        }
+        
+        function populateUserSelects() {
+            const otkSelect = document.getElementById('create-otk-inspector');
+            if (!otkSelect) return;
+            
+            otkSelect.innerHTML = '<option value="">Автоназначение</option>';
+            
+            const otkUsers = window.users.filter(user => 
+                user.role === 'otk_inspector' || 
+                user.role === 'admin' || 
+                user.role === 'super_admin'
+            );
+            
+            otkUsers.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.telegram_id;
+                const displayName = (user.first_name || '') + ' ' + (user.last_name || '');
+                option.textContent = displayName.trim() || user.username || user.telegram_id;
+                otkSelect.appendChild(option);
+            });
+        }
+        
+        function toggleSerialNumbers() {
+            const quantity = parseInt(document.getElementById('create-quantity').value) || 1;
+            const serialSection = document.getElementById('serial-numbers-section');
+            
+            if (serialSection) {
+                if (quantity > 1) {
+                    serialSection.style.display = 'block';
+                } else {
+                    serialSection.style.display = 'none';
+                    document.getElementById('create-serial-numbers').value = '';
+                }
+            }
+        }
+        
+        function previewMkiPhotos(input) {
+            const preview = document.getElementById('mki-photos-preview');
+            if (!preview) return;
+            
+            preview.innerHTML = '';
+            
+            if (input.files && input.files.length > 0) {
+                for (let i = 0; i < input.files.length; i++) {
+                    const file = input.files[i];
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.width = '100px';
+                        img.style.height = '100px';
+                        img.style.objectFit = 'cover';
+                        img.style.margin = '5px';
+                        img.style.borderRadius = '5px';
+                        img.style.border = '2px solid #ddd';
+                        
+                        preview.appendChild(img);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+        
+        // ============ МОДАЛЬНЫЕ ОКНА ============
+        function showCreateModal() {
+            const modal = document.getElementById('create-modal');
+            if (modal) modal.style.display = 'flex';
+        }
+        
+        function closeCreateModal() {
+            const modal = document.getElementById('create-modal');
+            if (modal) modal.style.display = 'none';
+            const form = document.getElementById('create-form');
+            if (form) form.reset();
+            toggleSerialNumbers();
+        }
+        
+        function showViewModal() {
+            const modal = document.getElementById('view-modal');
+            if (modal) modal.style.display = 'flex';
+        }
+        
+        function closeViewModal() {
+            const modal = document.getElementById('view-modal');
+            if (modal) modal.style.display = 'none';
+            window.currentApplicationId = null;
+            window.currentApplication = null;
+        }
+        
+        function showEditModal() {
+            const modal = document.getElementById('edit-modal');
+            if (modal) modal.style.display = 'flex';
+        }
+        
+        function closeEditModal() {
+            const modal = document.getElementById('edit-modal');
+            if (modal) modal.style.display = 'none';
+        }
+        
+        // ============ ИНИЦИАЛИЗАЦИЯ ============
+        async function initializePage() {
+            console.log('🔄 Инициализация страницы...');
+            console.log('Контейнер:', document.getElementById('applications-list'));
+            
+            showLoading();
+            
+            try {
+                console.log('📦 Загрузка данных...');
+                
+                // Загружаем последовательно для отладки
+                console.log('1. Загружаем участки...');
+                await loadLots();
+                
+                console.log('2. Загружаем изделия...');
+                await loadProducts();
+                
+                console.log('3. Загружаем пользователей...');
+                await loadUsers();
+                
+                console.log('4. Загружаем заявки...');
+                await loadApplications();
+                
+                console.log('✅ Все данные загружены!');
+                console.log('Заявок в памяти:', window.applications.length);
+                console.log('Отфильтрованных:', window.filteredApplications.length);
+                
+                toggleSerialNumbers();
+                
+            } catch (error) {
+                console.error('❌ Ошибка инициализации:', error);
+                document.getElementById('applications-list').innerHTML = 
+                    '<div class="error">Ошибка загрузки: ' + error.message + '</div>';
+            }
+        }
+        
+        function refreshData() {
+            console.log('🔄 Ручное обновление данных...');
+            initializePage();
+        }
+        
+        // ============ ОБРАБОТКА СОБЫТИЙ ============
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM полностью загружен, запускаем инициализацию...');
+            initializePage();
+            
+            // Автообновление каждые 30 секунд
+            setInterval(() => {
+                if (window.currentTab === 'list') {
+                    console.log('🔄 Автообновление заявок...');
+                    loadApplications();
+                }
+            }, 30000);
+        });
+
+          async function createApplication(event) {
+        event.preventDefault();
+        
+        console.log('🛠️ Создание заявки...');
+        
+        // Показываем индикатор загрузки
+        const submitBtn = event.submitter || event.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+        submitBtn.disabled = true;
+        
+        try {
+            // 1. Подготавливаем данные
+            const lotId = document.getElementById('create-lot-id').value;
+            const productId = document.getElementById('create-product-id').value;
+            
+            if (!lotId || !productId) {
+                alert('❌ Выберите участок и изделие!');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                return;
+            }
+            
+            const formData = new FormData();
+            
+            // Обязательные поля
+            formData.append('lot_id', lotId);
+            formData.append('product_id', productId);
+            formData.append('creator_telegram_id', 'admin_bot'); // временно
+            
+            // Опциональные поля
+            const drawingNumber = document.getElementById('create-drawing-number').value;
+            const serialNumbers = document.getElementById('create-serial-numbers').value;
+            const quantity = document.getElementById('create-quantity').value;
+            const notes = document.getElementById('create-notes').value;
+            const desiredTime = document.getElementById('create-desired-time').value;
+            const otkInspector = document.getElementById('create-otk-inspector').value;
+            const sendTelegram = document.getElementById('create-send-telegram').checked;
+            
+            if (drawingNumber) formData.append('drawing_number', drawingNumber);
+            if (serialNumbers) formData.append('serial_numbers', serialNumbers);
+            formData.append('quantity', quantity || '1');
+            if (notes) formData.append('notes', notes);
+            if (desiredTime) formData.append('desired_inspection_time', desiredTime);
+            if (otkInspector) formData.append('otk_inspector_telegram_id', otkInspector);
+            formData.append('send_telegram', sendTelegram.toString());
+            
+            // 2. Добавляем файлы
+            const photoInput = document.getElementById('mki-photo-input');
+            if (photoInput.files.length > 0) {
+                console.log(`📸 Загружаем ${photoInput.files.length} фото`);
+                for (let i = 0; i < photoInput.files.length; i++) {
+                    formData.append('mki_photos', photoInput.files[i]);
+                }
+            }
+            
+            // 3. Отправляем запрос
+            console.log('📤 Отправка данных на сервер...');
+            
+            const response = await fetch('/api/v1/applications', {
+                method: 'POST',
+                body: formData
+            });
+            
+            console.log('📥 Ответ получен:', response.status);
+            
+            const result = await response.json();
+            console.log('📊 Результат:', result);
+            
+            if (result.success) {
+                showSuccess(`✅ Успешно! Создано ${result.created_count || 1} заявок`);
+                
+                // Очищаем форму
+                document.getElementById('create-form').reset();
+                document.getElementById('mki-photos-preview').innerHTML = '';
+                
+                // Закрываем модалку
+                setTimeout(() => {
+                    closeCreateModal();
+                    refreshData();
+                }, 1500);
+                
+            } else {
+                showError('❌ Ошибка: ' + (result.error || 'Неизвестная ошибка'));
+            }
+            
+        } catch (error) {
+            console.error('🔥 Ошибка создания заявки:', error);
+            showError('❌ Ошибка сети: ' + error.message);
+            
+        } finally {
+            // Восстанавливаем кнопку
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    }
+
     </script>
-    
-    <style>
-        .status-new { color: #fab005; font-weight: bold; }
-        .status-in_progress { color: #228be6; font-weight: bold; }
-        .status-accepted { color: #40c057; font-weight: bold; }
-        .status-rejected { color: #fa5252; font-weight: bold; }
-    </style>
 </body>
 </html>

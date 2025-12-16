@@ -87,6 +87,106 @@ class Bitrix24Service {
     }
   }
   
+  // Обновление заявки в Bitrix24
+  async updateApplication(bitrixId, updates) {
+    if (!this.enabled) return { success: false };
+    
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}crm.item.update.json`,
+        {
+          entityTypeId: this.entityId,
+          id: bitrixId,
+          fields: updates
+        }
+      );
+      
+      return {
+        success: true,
+        response: response.data
+      };
+    } catch (error) {
+      console.error('Bitrix24Service: ошибка обновления:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+  
+  // Обновление статуса в Bitrix24
+  async updateStatus(bitrixId, status) {
+    if (!this.enabled) return { success: false };
+    
+    try {
+      // Маппинг статусов TMA → Bitrix24 (настроить под ваши стадии)
+      const stageMap = {
+        'new': 'NEW',
+        'assigned_to_otk': 'PREPARATION',
+        'in_progress': '1',
+        'accepted': 'SUCCESS',
+        'rejected': 'FAILED',
+        'defect': '2'
+      };
+      
+      const stageId = stageMap[status] || 'NEW';
+      
+      const response = await axios.post(
+        `${this.baseUrl}crm.item.update.json`,
+        {
+          entityTypeId: this.entityId,
+          id: bitrixId,
+          fields: {
+            stageId: stageId
+          }
+        }
+      );
+      
+      console.log(`Bitrix24Service: статус обновлен #${bitrixId} -> ${stageId}`);
+      
+      return {
+        success: true,
+        response: response.data
+      };
+    } catch (error) {
+      console.error('Bitrix24Service: ошибка обновления статуса:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+  
+  // Удаление сущности из Bitrix24
+  async deleteEntity(bitrixId) {
+    if (!this.enabled) {
+      return { success: false, error: 'Service disabled' };
+    }
+    
+    try {
+      console.log(`Bitrix24Service: удаление сущности #${bitrixId}`);
+      
+      const response = await axios.post(
+        `${this.baseUrl}crm.item.delete.json`,
+        {
+          entityTypeId: this.entityId,
+          id: bitrixId
+        }
+      );
+      
+      console.log('Bitrix24Service: ответ на удаление:', response.data);
+      
+      if (response.data.result === true) {
+        console.log(`Bitrix24Service: успешно удалена сущность #${bitrixId}`);
+        return { success: true };
+      } else {
+        console.error('Bitrix24Service: ошибка удаления:', response.data);
+        return { 
+          success: false, 
+          error: response.data.error_description || 'Неизвестная ошибка' 
+        };
+      }
+      
+    } catch (error) {
+      console.error('Bitrix24Service: ошибка удаления:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+  
   // Маппинг полей TMA → Bitrix24
   mapToBitrixFields(application) {
     const fields = {};
@@ -139,30 +239,6 @@ class Bitrix24Service {
     return fields;
   }
   
-  // Обновление заявки в Bitrix24
-  async updateApplication(bitrixId, updates) {
-    if (!this.enabled) return { success: false };
-    
-    try {
-      const response = await axios.post(
-        `${this.baseUrl}crm.item.update.json`,
-        {
-          entityTypeId: this.entityId,
-          id: bitrixId,
-          fields: updates
-        }
-      );
-      
-      return {
-        success: true,
-        response: response.data
-      };
-    } catch (error) {
-      console.error('Bitrix24Service: ошибка обновления:', error.message);
-      return { success: false, error: error.message };
-    }
-  }
-  
   // Синхронизация очереди
   async processQueue(knex, limit = 10) {
     if (!this.enabled || !knex) return;
@@ -209,6 +285,14 @@ class Bitrix24Service {
           const payload = JSON.parse(task.payload);
           result = await this.updateApplication(payload.bitrix_id, payload.fields);
           break;
+        case 'delete':
+          const deletePayload = JSON.parse(task.payload);
+          result = await this.deleteEntity(deletePayload.bitrix_id);
+          break;
+        case 'update_status':
+          const statusPayload = JSON.parse(task.payload);
+          result = await this.updateStatus(statusPayload.bitrix_id, statusPayload.status);
+          break;
         default:
           result = { success: false, error: 'Unknown operation' };
       }
@@ -228,7 +312,7 @@ class Bitrix24Service {
       
       // Увеличиваем счетчик повторных попыток
       const newRetryCount = task.retry_count + 1;
-      const shouldRetry = newRetryCount < task.max_retries;
+      const shouldRetry = newRetryCount < (task.max_retries || 3);
       
       await knex('sync_queue')
         .where('id', task.id)

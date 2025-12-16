@@ -84,7 +84,7 @@ class DiscrepancyController {
           'd.*',
           'a.application_number',
           'p.name as product_name',
-          'p.drawing_number'
+          'a.drawing_number'
         );
       
       if (status) query = query.where('d.status', status);
