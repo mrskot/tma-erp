@@ -83,8 +83,12 @@ class ProductController {
         type, 
         unit,
         inspection_time_minutes,
+<<<<<<< HEAD
         checklist_text,
         default_otk_inspector_telegram_id
+=======
+        checklist_text
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
       } = req.body;
       
       if (!name) {
@@ -100,8 +104,12 @@ class ProductController {
         type,
         unit,
         inspection_time_minutes,
+<<<<<<< HEAD
         checklist_text,
         default_otk_inspector_telegram_id
+=======
+        checklist_text
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
       });
       
       res.status(201).json({
@@ -236,6 +244,7 @@ class ProductController {
     }
   }
 
+<<<<<<< HEAD
   // Получить справочники (типы, единицы измерения, контролёры)
   static async getReferenceData(req, res) {
     try {
@@ -246,6 +255,15 @@ class ProductController {
         types: Product.getTypesForSelect(),
         units: Product.getUnitsForSelect(),
         inspectors
+=======
+  // Получить справочники (типы, единицы измерения)
+  static async getReferenceData(req, res) {
+    try {
+      res.json({
+        success: true,
+        types: Product.getTypesForSelect(),
+        units: Product.getUnitsForSelect()
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
       });
     } catch (error) {
       console.error('Get reference data error:', error);

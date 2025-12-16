@@ -68,7 +68,10 @@ class Product {
       .insert({
         name: productData.name,
         lot_id: productData.lot_id || null,
+<<<<<<< HEAD
         default_otk_inspector_telegram_id: productData.default_otk_inspector_telegram_id || null,
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
         type: productData.type || 'finished_product',
         unit: productData.unit || 'pcs',
         inspection_time_minutes: productData.inspection_time_minutes || 30,
@@ -119,6 +122,7 @@ class Product {
     }));
   }
 
+<<<<<<< HEAD
   // Найти изделия по контролёру ОТК
   static async findByInspector(telegramId) {
     const products = await db('products')
@@ -134,6 +138,8 @@ class Product {
     }));
   }
 
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
   // Получить все типы для dropdown
   static getTypesForSelect() {
     return Object.entries(this.TYPES).map(([value, label]) => ({ value, label }));
@@ -144,6 +150,7 @@ class Product {
     return Object.entries(this.UNITS).map(([value, label]) => ({ value, label }));
   }
 
+<<<<<<< HEAD
   // Получить контролёров ОТК (из users) для dropdown
   static async getAvailableInspectors() {
     const inspectors = await db('users')
@@ -158,6 +165,8 @@ class Product {
     }));
   }
 
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
   // Статистика по изделию (заглушка - расширим позже)
   static async getStats(productId) {
     const product = await this.findById(productId);

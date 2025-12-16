@@ -12,6 +12,7 @@ class ApplicationController {
 
   // Получить все заявки
   static async getAll(req, res) {
+<<<<<<< HEAD
   try {
     console.log('🔄 Получение заявок с фильтрами:', req.query);
     
@@ -30,6 +31,38 @@ class ApplicationController {
       applications = await Application.findByProduct(product_id, parseInt(limit) || 50);
     } else {
       applications = await Application.findAll(parseInt(limit) || 100);
+=======
+    try {
+      const { status, limit, creator, lot_id, product_id } = req.query;
+      
+      let applications;
+      
+      if (status) {
+        applications = await Application.findByStatus(status);
+      } else if (creator) {
+        applications = await Application.findByCreator(creator, parseInt(limit) || 50);
+      } else if (lot_id) {
+        applications = await Application.findByLot(lot_id, parseInt(limit) || 50);
+      } else if (product_id) {
+        applications = await Application.findByProduct(product_id, parseInt(limit) || 50);
+      } else {
+        applications = await Application.findAll(parseInt(limit) || 100);
+      }
+      
+      res.json({
+        success: true,
+        count: applications.length,
+        filters: { status, limit, creator, lot_id, product_id },
+        applications
+      });
+      
+    } catch (error) {
+      console.error('Get all applications error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ошибка при получении списка заявок'
+      });
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
     }
     
     console.log(`✅ Загружено заявок: ${applications.length}`);

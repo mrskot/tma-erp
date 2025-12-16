@@ -11,6 +11,7 @@
       .onDelete('SET NULL')
       .comment('Участок производства');
     
+<<<<<<< HEAD
     // Контролёр ОТК по умолчанию
     table.string('default_otk_inspector_telegram_id', 50)
       .nullable()
@@ -21,6 +22,13 @@
       .defaultTo('finished_product')
       .comment('Тип: semi_finished-полуфабрикат, assembly-узел, finished_product-готовая продукция, detail-деталь');
     
+=======
+    // Тип изделия - добавляем 'detail' (деталь)
+    table.enum('type', ['semi_finished', 'assembly', 'finished_product', 'detail'])
+      .defaultTo('finished_product')
+      .comment('Тип: semi_finished-полуфабрикат, assembly-узел, finished_product-готовая продукция, detail-деталь');
+    
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
     // Единица измерения
     table.enum('unit', ['pcs', 'set'])
       .defaultTo('pcs')
@@ -46,7 +54,10 @@
     // Индексы
     table.index(['name']);
     table.index(['lot_id']);
+<<<<<<< HEAD
     table.index(['default_otk_inspector_telegram_id'], 'products_default_otk_idx');
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
     table.index(['type']);
     table.index(['is_active']);
     

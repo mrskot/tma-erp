@@ -110,6 +110,7 @@
                 </div>
                 
                 <div class="form-group">
+<<<<<<< HEAD
                     <label for="default-inspector">Контролёр ОТК по умолчанию</label>
                     <select id="default-inspector" class="form-control">
                         <option value="">Не назначен</option>
@@ -118,6 +119,8 @@
                 </div>
                 
                 <div class="form-group">
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
                     <label for="inspection-time">Время на приёмку (минуты)</label>
                     <input type="number" id="inspection-time" class="form-control" value="30" min="1" max="480">
                 </div>
@@ -175,6 +178,7 @@
                 </div>
                 
                 <div class="form-group">
+<<<<<<< HEAD
                     <label for="edit-default-inspector">Контролёр ОТК по умолчанию</label>
                     <select id="edit-default-inspector" class="form-control">
                         <option value="">Не назначен</option>
@@ -183,6 +187,8 @@
                 </div>
                 
                 <div class="form-group">
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
                     <label for="edit-inspection-time">Время на приёмку (минуты)</label>
                     <input type="number" id="edit-inspection-time" class="form-control" min="1" max="480">
                 </div>
@@ -212,7 +218,10 @@
         let allProducts = [];
         let allLots = [];
         let currentEditId = null;
+<<<<<<< HEAD
         let availableInspectors = [];
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
         
         // Загрузка данных при старте
         async function loadData() {
@@ -261,6 +270,7 @@
             }
         }
         
+<<<<<<< HEAD
         // Загрузить справочные данные (типы, единицы, контролёры)
         async function loadReferenceData() {
             try {
@@ -282,6 +292,16 @@
                     }
                 } else {
                     console.error('Ошибка в ответе API:', data.error);
+=======
+        // Загрузить справочные данные (типы, единицы)
+        async function loadReferenceData() {
+            try {
+                const response = await fetch('/api/v1/products/reference/data');
+                const data = await response.json();
+                
+                if (data.success) {
+                    populateTypeFilter(data.types);
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
                 }
             } catch (error) {
                 console.error('Ошибка загрузки справочных данных:', error);
@@ -317,15 +337,19 @@
         function populateTypeFilter(types) {
             const typeFilter = document.getElementById('type-filter');
             
+<<<<<<< HEAD
             // Очищаем кроме первого option
             while (typeFilter.children.length > 1) typeFilter.removeChild(typeFilter.lastChild);
             
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
             types.forEach(type => {
                 const option = new Option(type.label, type.value);
                 typeFilter.appendChild(option);
             });
         }
         
+<<<<<<< HEAD
         // Заполнить select контролёров в форме создания
         function populateCreateInspectors() {
             const createInspectorSelect = document.getElementById('default-inspector');
@@ -375,6 +399,8 @@
             console.log('Контролёры добавлены в форму редактирования');
         }
         
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
         // Обновить статистику
         function updateStats(products) {
             const totalProducts = products.length;
@@ -402,7 +428,10 @@
             html += '<th>Тип</th>';
             html += '<th>Ед.изм.</th>';
             html += '<th>Участок</th>';
+<<<<<<< HEAD
             html += '<th>Контролёр ОТК</th>';
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
             html += '<th>Время приёмки</th>';
             html += '<th>Действия</th>';
             html += '</tr></thead><tbody>';
@@ -418,7 +447,10 @@
                 html += '<td>' + product.type_display + '</td>';
                 html += '<td>' + product.unit_display + '</td>';
                 html += '<td>' + (product.lot_id ? getLotName(product.lot_id) : '-') + '</td>';
+<<<<<<< HEAD
                 html += '<td>' + (product.default_otk_inspector_telegram_id ? getInspectorName(product.default_otk_inspector_telegram_id) : '-') + '</td>';
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
                 html += '<td>' + (product.inspection_time_minutes || 0) + ' мин</td>';
                 html += '<td>';
                 html += '<button class="btn-action btn-edit" onclick="openEditModal(' + product.id + ')">';
@@ -469,17 +501,23 @@
             return lot ? lot.name : 'Неизвестный участок';
         }
         
+<<<<<<< HEAD
         // Получить имя контролёра по Telegram ID
         function getInspectorName(telegramId) {
             const inspector = availableInspectors.find(i => i.value === telegramId);
             return inspector ? inspector.label : telegramId;
         }
         
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
         // ========== МОДАЛЬНЫЕ ОКНА ==========
         
         function showCreateModal() {
             document.getElementById('createModal').style.display = 'block';
+<<<<<<< HEAD
             populateCreateInspectors(); // Заполняем контролёров
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
         }
         
         function closeCreateModal() {
@@ -506,9 +544,12 @@
                     document.getElementById('edit-checklist-text').value = product.checklist_text || '';
                     document.getElementById('edit-is-active').value = product.is_active.toString();
                     
+<<<<<<< HEAD
                     // Заполняем контролёров и устанавливаем выбранного
                     populateEditInspectors(product.default_otk_inspector_telegram_id);
                     
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
                     document.getElementById('editModal').style.display = 'block';
                 }
             } catch (error) {
@@ -533,7 +574,10 @@
                 lot_id: document.getElementById('product-lot').value || null,
                 type: document.getElementById('product-type').value,
                 unit: document.getElementById('product-unit').value,
+<<<<<<< HEAD
                 default_otk_inspector_telegram_id: document.getElementById('default-inspector').value || null,
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
                 inspection_time_minutes: parseInt(document.getElementById('inspection-time').value) || 30,
                 checklist_text: document.getElementById('checklist-text').value || null
             };
@@ -572,7 +616,10 @@
                 lot_id: document.getElementById('edit-product-lot').value || null,
                 type: document.getElementById('edit-product-type').value,
                 unit: document.getElementById('edit-product-unit').value,
+<<<<<<< HEAD
                 default_otk_inspector_telegram_id: document.getElementById('edit-default-inspector').value || null,
+=======
+>>>>>>> 474115919bb1c599bbd4db3e37acfd55872630d9
                 inspection_time_minutes: parseInt(document.getElementById('edit-inspection-time').value) || 30,
                 checklist_text: document.getElementById('edit-checklist-text').value || null,
                 is_active: document.getElementById('edit-is-active').value === 'true'
